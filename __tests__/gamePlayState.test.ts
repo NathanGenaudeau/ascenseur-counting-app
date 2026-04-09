@@ -16,13 +16,16 @@ function reduce(s: GamePlayState, a: PlayAction): GamePlayState {
 describe('gamePlayReducer', () => {
   const base = gamePlayReducer(null, { type: 'INIT', playerCount: 2 })!;
 
-  it('GO_TO_RESULTS nécessite toutes les annonces', () => {
-    let s = reduce(base, { type: 'SET_ANNOUNCEMENT', index: 0, value: 2 });
-    const unchanged = gamePlayReducer(s, { type: 'GO_TO_RESULTS' });
-    expect(unchanged?.draft.step).toBe('announce');
+  it('GO_TO_RESULTS passe à résultats dès que chaque annonce est un entier ≥ 0 (défaut 0)', () => {
+    const fromDefaults = gamePlayReducer(base, { type: 'GO_TO_RESULTS' });
+    expect(fromDefaults?.draft.step).toBe('results');
+
+    let s = gamePlayReducer(null, { type: 'INIT', playerCount: 2 })!;
+    s = reduce(s, { type: 'SET_ANNOUNCEMENT', index: 0, value: 2 });
     s = reduce(s, { type: 'SET_ANNOUNCEMENT', index: 1, value: 2 });
     const next = gamePlayReducer(s, { type: 'GO_TO_RESULTS' });
     expect(next?.draft.step).toBe('results');
+    expect(next?.draft.tricks).toEqual([2, 2]);
   });
 
   it('FINALIZE_ROUND ajoute une manche et réinitialise le brouillon', () => {
@@ -37,7 +40,8 @@ describe('gamePlayReducer', () => {
     expect(s.roundsCompleted[0].scores).toEqual([3, -1]);
     expect(s.currentRoundIndex).toBe(2);
     expect(s.draft.step).toBe('announce');
-    expect(s.draft.announcements.every((v) => v === null)).toBe(true);
+    expect(s.draft.announcements).toEqual([0, 0]);
+    expect(s.draft.announcementTouched).toBe(false);
   });
 
   it('END_GAME termine la partie entre deux manches (ASC-17)', () => {

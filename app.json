@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ascenseur-counting-app",
-    "slug": "ascenseur-counting-app",
+    "slug": "ascenceur",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,10 +21,17 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.ascenseurcountingapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c8c52824-e276-4848-aa7a-d9ca77b71bbf"
+      }
+    },
+    "owner": "naklines-organization"
   }
 }

@@ -25,7 +25,8 @@ export function AppNavigator() {
         <GameConfigurationProvider>
           <Tab.Navigator
             screenOptions={{
-              headerTitleAlign: 'center',
+              /** Pas d’en-tête : les titres sont déjà portés par la barre d’onglets en bas. */
+              headerShown: false,
               tabBarActiveTintColor: '#171717',
               tabBarInactiveTintColor: '#737373',
             }}

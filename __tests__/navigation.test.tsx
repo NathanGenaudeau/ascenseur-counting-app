@@ -6,7 +6,7 @@ import App from '../App';
 describe('Navigation principale', () => {
   it('affiche l’onglet Configuration par défaut', () => {
     render(<App />);
-    expect(screen.getByText('Ascenseur')).toBeOnTheScreen();
+    expect(screen.getByText('Nombre de joueurs')).toBeOnTheScreen();
   });
 
   it('permet d’accéder à l’écran Historique via l’onglet', async () => {

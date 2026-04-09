@@ -32,7 +32,7 @@ export function StatisticsScreen() {
   const winsData = buildWinCountData(stats);
 
   return (
-    <SafeAreaView testID="screen-statistics" className="flex-1 bg-white" edges={['left', 'right']}>
+    <SafeAreaView testID="screen-statistics" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
       <ScrollView className="flex-1 px-4 pb-8" keyboardShouldPersistTaps="handled">
         <Text className="mb-1 text-xl font-semibold text-neutral-900">Statistiques</Text>
         <Text className="mb-6 text-sm text-neutral-600">

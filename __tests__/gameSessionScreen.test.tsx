@@ -48,6 +48,13 @@ function SeedThreePlayers({ children }: { children: React.ReactNode }) {
   return <View>{children}</View>;
 }
 
+/** Depuis 0 par défaut, `target` appuis sur + pour atteindre `target`. */
+function pressPlusToValue(testIdBase: string, target: number) {
+  for (let n = 0; n < target; n++) {
+    fireEvent.press(screen.getByTestId(`${testIdBase}-plus`));
+  }
+}
+
 describe('GameSessionScreen (phase 5)', () => {
   it('affiche le cumul et permet une manche complète', async () => {
     render(<SessionTestRoot />);
@@ -58,21 +65,20 @@ describe('GameSessionScreen (phase 5)', () => {
 
     expect(screen.getByTestId('cumulative-score-0').props.children).toBe(0);
 
-    fireEvent.changeText(screen.getByTestId('announce-input-0'), '3');
-    fireEvent.changeText(screen.getByTestId('announce-input-1'), '3');
-    fireEvent.changeText(screen.getByTestId('announce-input-2'), '3');
+    pressPlusToValue('announce-input-0', 3);
+    pressPlusToValue('announce-input-1', 3);
+    pressPlusToValue('announce-input-2', 3);
 
     fireEvent.press(screen.getByTestId('validate-announcements-button'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('tricks-input-0')).toBeOnTheScreen();
+      expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
     });
 
     expect(screen.getByTestId('recap-announce-0').props.children).toBe(3);
 
-    fireEvent.changeText(screen.getByTestId('tricks-input-0'), '3');
-    fireEvent.changeText(screen.getByTestId('tricks-input-1'), '2');
-    fireEvent.changeText(screen.getByTestId('tricks-input-2'), '3');
+    /** Plis préremplis sur les annonces [3,3,3] : ajuster seulement B de 3 → 2. */
+    fireEvent.press(screen.getByTestId('tricks-input-1-minus'));
 
     fireEvent.press(screen.getByTestId('finalize-round-button'));
 
@@ -95,16 +101,14 @@ describe('GameSessionScreen (phase 7)', () => {
       expect(screen.getByTestId('cumulative-score-0')).toBeOnTheScreen();
     });
 
-    fireEvent.changeText(screen.getByTestId('announce-input-0'), '3');
-    fireEvent.changeText(screen.getByTestId('announce-input-1'), '3');
-    fireEvent.changeText(screen.getByTestId('announce-input-2'), '3');
+    pressPlusToValue('announce-input-0', 3);
+    pressPlusToValue('announce-input-1', 3);
+    pressPlusToValue('announce-input-2', 3);
     fireEvent.press(screen.getByTestId('validate-announcements-button'));
     await waitFor(() => {
-      expect(screen.getByTestId('tricks-input-0')).toBeOnTheScreen();
+      expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
     });
-    fireEvent.changeText(screen.getByTestId('tricks-input-0'), '3');
-    fireEvent.changeText(screen.getByTestId('tricks-input-1'), '2');
-    fireEvent.changeText(screen.getByTestId('tricks-input-2'), '3');
+    fireEvent.press(screen.getByTestId('tricks-input-1-minus'));
     fireEvent.press(screen.getByTestId('finalize-round-button'));
 
     await waitFor(() => {

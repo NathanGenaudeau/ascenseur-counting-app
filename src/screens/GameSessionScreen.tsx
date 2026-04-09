@@ -1,13 +1,16 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { Text, TextInput, Pressable, ScrollView, View } from 'react-native';
+import { Text, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GameSummaryView } from '../components/GameSummaryView';
+import { NumericStepper } from '../components/NumericStepper';
 import { ScoreEvolutionChart } from '../components/ScoreEvolutionChart';
 import { useGameSession } from '../context/GameSessionContext';
 import type { RootTabParamList } from '../navigation/AppNavigator';
-import { parseNonNegativeIntText } from '../utils/parseNonNegativeInt';
+
+/** Borne haute pour les plis à la manche (saisie par pas de 1). */
+const MAX_TRICKS_PER_STEP = 20;
 
 export function GameSessionScreen() {
   const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
@@ -28,15 +31,18 @@ export function GameSessionScreen() {
 
   if (!session || !playState) {
     return (
-      <View
+      <SafeAreaView
         testID="screen-game-session"
-        className="flex-1 items-center justify-center bg-white px-4"
+        className="flex-1 bg-white"
+        edges={['top', 'left', 'right']}
       >
-        <Text className="text-lg font-medium text-neutral-900">Partie en cours</Text>
-        <Text className="mt-2 text-center text-neutral-600">
-          Démarrez une partie depuis l’onglet Configuration.
-        </Text>
-      </View>
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-lg font-medium text-neutral-900">Partie en cours</Text>
+          <Text className="mt-2 text-center text-neutral-600">
+            Démarrez une partie depuis l’onglet Configuration.
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -48,7 +54,7 @@ export function GameSessionScreen() {
       <SafeAreaView
         testID="screen-game-session"
         className="flex-1 bg-white"
-        edges={['left', 'right']}
+        edges={['top', 'left', 'right']}
       >
         <GameSummaryView
           playerNames={session.players.map((p) => p.displayName)}
@@ -67,10 +73,10 @@ export function GameSessionScreen() {
     <SafeAreaView
       testID="screen-game-session"
       className="flex-1 bg-white"
-      edges={['left', 'right']}
+      edges={['top', 'left', 'right']}
     >
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <View className="px-4 pb-8">
+        <View className="px-4 pb-8 pt-2">
           <Text className="mb-4 text-xl font-semibold text-neutral-900">Partie en cours</Text>
 
           <Text className="mb-2 text-sm font-medium text-neutral-600">Scores cumulés</Text>
@@ -129,42 +135,44 @@ export function GameSessionScreen() {
                 <View key={`ann-${i}`} className="mb-1 flex-row justify-between">
                   <Text className="text-neutral-800">{p.displayName}</Text>
                   <Text testID={`recap-announce-${i}`} className="font-medium text-neutral-900">
-                    {announcements[i] ?? '—'}
+                    {announcements[i]}
                   </Text>
                 </View>
               ))}
             </View>
           ) : null}
 
-          {session.players.map((p, i) => (
-            <View key={`slot-${i}`} className="mb-4 rounded-lg border border-neutral-200 p-3">
-              <Text className="mb-2 text-base font-medium text-neutral-900">{p.displayName}</Text>
+          {Array.from({ length: Math.ceil(session.players.length / 2) }, (_, rowIdx) => (
+            <View key={`row-${rowIdx}`} className="mb-4 flex-row gap-3">
+              {[0, 1].map((col) => {
+                const i = rowIdx * 2 + col;
+                if (i >= session.players.length) {
+                  return <View key={`empty-${col}`} className="flex-1" />;
+                }
+                const p = session.players[i];
+                return (
+                  <View key={`slot-${i}`} className="min-w-0 flex-1 rounded-lg border border-neutral-200 p-3">
+                    <Text className="mb-2 text-base font-medium text-neutral-900">{p.displayName}</Text>
 
-              {step === 'announce' ? (
-                <>
-                  <Text className="mb-1 text-xs text-neutral-500">Plis annoncés</Text>
-                  <TextInput
-                    testID={`announce-input-${i}`}
-                    keyboardType="number-pad"
-                    value={announcements[i] === null ? '' : String(announcements[i])}
-                    onChangeText={(t) => setAnnouncementDraft(i, parseNonNegativeIntText(t))}
-                    placeholder="0"
-                    className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-base text-neutral-900"
-                  />
-                </>
-              ) : (
-                <>
-                  <Text className="mb-1 text-xs text-neutral-500">Plis réalisés</Text>
-                  <TextInput
-                    testID={`tricks-input-${i}`}
-                    keyboardType="number-pad"
-                    value={tricks[i] === null ? '' : String(tricks[i])}
-                    onChangeText={(t) => setTrickDraft(i, parseNonNegativeIntText(t))}
-                    placeholder="0"
-                    className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-base text-neutral-900"
-                  />
-                </>
-              )}
+                    {step === 'announce' ? (
+                      <NumericStepper
+                        testID={`announce-input-${i}`}
+                        value={announcements[i]}
+                        onChange={(v) => setAnnouncementDraft(i, v)}
+                        max={MAX_TRICKS_PER_STEP}
+                      />
+                    ) : (
+                      <NumericStepper
+                        testID={`tricks-input-${i}`}
+                        value={tricks[i]}
+                        onChange={(v) => setTrickDraft(i, v)}
+                        max={MAX_TRICKS_PER_STEP}
+                        compareWith={announcements[i]}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </View>
           ))}
 

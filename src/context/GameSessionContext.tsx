@@ -17,8 +17,10 @@ import {
   type GamePlayState,
   type PlayAction,
 } from '../domain/gamePlayState';
+import { scoreThresholdSoundsToPlay } from '../domain/scoreThresholdEvents';
 import { computeCumulativeScores } from '../domain/scoring';
 import { finishRemoteGame, persistRemoteRound } from '../services/gameSessionSupabase';
+import { playScoreThresholdSounds } from '../services/scoreThresholdSoundPlayer';
 
 export type ActiveSessionPlayer = {
   displayName: string;
@@ -38,8 +40,8 @@ type GameSessionContextValue = {
   setSession: (s: ActiveGameSession | null) => void;
   clearSession: () => void;
   playState: GamePlayState | null;
-  setAnnouncementDraft: (playerIndex: number, value: number | null) => void;
-  setTrickDraft: (playerIndex: number, value: number | null) => void;
+  setAnnouncementDraft: (playerIndex: number, value: number) => void;
+  setTrickDraft: (playerIndex: number, value: number) => void;
   goToResultsStep: () => void;
   finalizeRound: () => void;
   cumulativeScores: number[];
@@ -58,11 +60,14 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
     null,
   );
   const lastSyncedRoundCountRef = useRef(0);
+  /** Évite de rejouer les sons pour la même manche (Strict Mode / re-renders). */
+  const thresholdRoundFingerprintRef = useRef<string | null>(null);
 
   const setSession = useCallback((s: ActiveGameSession | null) => {
     setSessionState(s);
     if (s) {
       lastSyncedRoundCountRef.current = 0;
+      thresholdRoundFingerprintRef.current = null;
       playDispatch({ type: 'INIT', playerCount: s.players.length });
     } else {
       playDispatch({ type: 'CLEAR' });
@@ -71,15 +76,16 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
 
   const clearSession = useCallback(() => {
     lastSyncedRoundCountRef.current = 0;
+    thresholdRoundFingerprintRef.current = null;
     setSessionState(null);
     playDispatch({ type: 'CLEAR' });
   }, []);
 
-  const setAnnouncementDraft = useCallback((playerIndex: number, value: number | null) => {
+  const setAnnouncementDraft = useCallback((playerIndex: number, value: number) => {
     playDispatch({ type: 'SET_ANNOUNCEMENT', index: playerIndex, value });
   }, []);
 
-  const setTrickDraft = useCallback((playerIndex: number, value: number | null) => {
+  const setTrickDraft = useCallback((playerIndex: number, value: number) => {
     playDispatch({ type: 'SET_TRICK', index: playerIndex, value });
   }, []);
 
@@ -97,6 +103,29 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
       void finishRemoteGame(session.supabaseGameId);
     }
     playDispatch({ type: 'END_GAME' });
+  }, [session, playState]);
+
+  useEffect(() => {
+    if (!session || !playState) {
+      thresholdRoundFingerprintRef.current = null;
+      return;
+    }
+    const n = session.players.length;
+    const rounds = playState.roundsCompleted;
+    const len = rounds.length;
+    if (len < 1) {
+      thresholdRoundFingerprintRef.current = null;
+      return;
+    }
+    const last = rounds[len - 1];
+    const fingerprint = `${len}-${last.roundIndex}-${JSON.stringify(last.scores)}`;
+    if (thresholdRoundFingerprintRef.current === fingerprint) return;
+    thresholdRoundFingerprintRef.current = fingerprint;
+
+    const currentScores = computeCumulativeScores(rounds, n);
+    const prevScores = computeCumulativeScores(rounds.slice(0, -1), n);
+    const kinds = scoreThresholdSoundsToPlay(prevScores, currentScores);
+    playScoreThresholdSounds(kinds);
   }, [session, playState]);
 
   useEffect(() => {

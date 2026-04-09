@@ -42,7 +42,7 @@ export function HistoryScreen() {
     const winnerLabel = ranking.filter((r) => r.rank === 1).map((r) => r.displayName).join(', ');
 
     return (
-      <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['left', 'right']}>
+      <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
           <View className="px-4 pb-8">
             <Pressable
@@ -90,7 +90,7 @@ export function HistoryScreen() {
   }
 
   return (
-    <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['left', 'right']}>
+    <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
       <View className="border-b border-neutral-200 px-4 pb-3 pt-2">
         <Text className="text-xl font-semibold text-neutral-900">Historique</Text>
         <Text className="mt-1 text-sm text-neutral-600">Parties terminées enregistrées sur cet appareil.</Text>

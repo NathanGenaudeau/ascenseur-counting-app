@@ -1,4 +1,3 @@
-import { Layers } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -74,41 +73,37 @@ export function GameConfigurationScreen() {
           keyboardShouldPersistTaps="handled"
           className="flex-1"
         >
-          <View className="px-4 pb-8">
+          <View className="px-4 pb-8 pt-2">
             <View className="mb-6 items-center">
-              <View testID="app-brand-icon" className="mb-2 items-center justify-center">
-                <Layers accessibilityLabel="Ascenseur" size={28} color="#171717" />
-              </View>
-              <Text className="mb-1 text-2xl font-semibold text-neutral-900">Ascenseur</Text>
-              <Text className="text-base text-neutral-600">Suivi de parties</Text>
-            </View>
-
-            <Text className="mb-2 text-sm font-medium text-neutral-700">Nombre de joueurs</Text>
-            <View testID="player-count-row" className="mb-6 flex-row items-center gap-4">
-              <Pressable
-                testID="player-count-minus"
-                accessibilityRole="button"
-                disabled={draft.playerCount <= PLAYER_COUNT_MIN}
-                onPress={() => setPlayerCount(draft.playerCount - 1)}
-                className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
-              >
-                <Text className="text-lg">−</Text>
-              </Pressable>
-              <Text
-                testID="player-count-value"
-                className="min-w-[32px] text-center text-xl font-semibold"
-              >
-                {draft.playerCount}
+              <Text className="mb-2 text-center text-sm font-medium text-neutral-700">
+                Nombre de joueurs
               </Text>
-              <Pressable
-                testID="player-count-plus"
-                accessibilityRole="button"
-                disabled={draft.playerCount >= PLAYER_COUNT_MAX}
-                onPress={() => setPlayerCount(draft.playerCount + 1)}
-                className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
-              >
-                <Text className="text-lg">+</Text>
-              </Pressable>
+              <View testID="player-count-row" className="flex-row items-center justify-center gap-4">
+                <Pressable
+                  testID="player-count-minus"
+                  accessibilityRole="button"
+                  disabled={draft.playerCount <= PLAYER_COUNT_MIN}
+                  onPress={() => setPlayerCount(draft.playerCount - 1)}
+                  className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
+                >
+                  <Text className="text-lg">−</Text>
+                </Pressable>
+                <Text
+                  testID="player-count-value"
+                  className="min-w-[32px] text-center text-xl font-semibold"
+                >
+                  {draft.playerCount}
+                </Text>
+                <Pressable
+                  testID="player-count-plus"
+                  accessibilityRole="button"
+                  disabled={draft.playerCount >= PLAYER_COUNT_MAX}
+                  onPress={() => setPlayerCount(draft.playerCount + 1)}
+                  className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
+                >
+                  <Text className="text-lg">+</Text>
+                </Pressable>
+              </View>
             </View>
 
             <Text className="mb-2 text-sm font-medium text-neutral-700">Notes (optionnel)</Text>

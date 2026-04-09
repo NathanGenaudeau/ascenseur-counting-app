@@ -9,11 +9,11 @@ import { gamePlayReducer } from '../src/domain/gamePlayState';
 describe('finishedGameRecord', () => {
   it('sérialise et parse une liste', () => {
     let s = gamePlayReducer(null, { type: 'INIT', playerCount: 2 })!;
-    s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 0, value: 2 });
-    s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 1, value: 2 });
-    s = gamePlayReducer(s, { type: 'GO_TO_RESULTS' });
-    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 0, value: 2 });
-    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 1, value: 2 });
+    s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 0, value: 2 })!;
+    s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 1, value: 2 })!;
+    s = gamePlayReducer(s, { type: 'GO_TO_RESULTS' })!;
+    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 0, value: 2 })!;
+    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 1, value: 2 })!;
     s = gamePlayReducer(s, { type: 'FINALIZE_ROUND' })!;
 
     const record = buildFinishedGameRecord(

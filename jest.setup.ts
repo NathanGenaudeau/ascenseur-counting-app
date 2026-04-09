@@ -23,6 +23,24 @@ jest.mock('./src/services/lastGameConfigurationSupabase', () => ({
   loadLastGameDraftFromSupabase: jest.fn().mockResolvedValue(null),
 }));
 
+jest.mock('./src/services/scoreThresholdSoundPlayer', () => ({
+  playScoreThresholdSounds: jest.fn(),
+}));
+
+jest.mock('expo-av', () => ({
+  Audio: {
+    setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+    Sound: {
+      createAsync: jest.fn().mockResolvedValue({
+        sound: {
+          replayAsync: jest.fn().mockResolvedValue(undefined),
+          unloadAsync: jest.fn().mockResolvedValue(undefined),
+        },
+      }),
+    },
+  },
+}));
+
 beforeEach(async () => {
   await mockAsyncStorage.clear();
 });

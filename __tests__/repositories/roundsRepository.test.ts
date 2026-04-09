@@ -68,7 +68,8 @@ describe('roundsRepository (ASC-50 / ASC-51)', () => {
 
     await upsertRoundResults('r1', [{ gamePlayerId: 'gp1', bid: 3, tricksWon: 3 }]);
 
-    expect(upsert.mock.calls[0][0][0].score).toBe(3);
+    const firstCall = upsert.mock.calls[0] as unknown as [Array<{ score: number }>];
+    expect(firstCall[0][0].score).toBe(3);
   });
 
   it('getRoundResults retourne les lignes', async () => {

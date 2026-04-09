@@ -11,8 +11,10 @@ export type DraftRoundStep = 'announce' | 'results';
 
 export type RoundDraft = {
   step: DraftRoundStep;
-  announcements: (number | null)[];
-  tricks: (number | null)[];
+  announcements: number[];
+  tricks: number[];
+  /** True dès qu’une annonce a été modifiée (détecte « entre manches » pour fin de partie). */
+  announcementTouched: boolean;
 };
 
 export type GamePhase = 'active' | 'finished';
@@ -32,27 +34,28 @@ export function createInitialPlayState(playerCount: number): GamePlayState {
     roundsCompleted: [],
     draft: {
       step: 'announce',
-      announcements: Array.from({ length: playerCount }, () => null),
-      tricks: Array.from({ length: playerCount }, () => null),
+      announcements: Array.from({ length: playerCount }, () => 0),
+      tricks: Array.from({ length: playerCount }, () => 0),
+      announcementTouched: false,
     },
   };
 }
 
-export function allSlotsFilled(values: (number | null)[]): boolean {
-  return values.length > 0 && values.every((v) => v !== null && Number.isInteger(v) && v >= 0);
+export function allSlotsFilled(values: number[]): boolean {
+  return values.length > 0 && values.every((v) => Number.isInteger(v) && v >= 0);
 }
 
-/** Entre deux manches : étape annonces et aucune valeur saisie. */
+/** Entre deux manches : étape annonces et aucune annonce modifiée depuis la dernière finalisation. */
 export function isBetweenRounds(state: GamePlayState): boolean {
   if (state.draft.step !== 'announce') return false;
-  return state.draft.announcements.every((v) => v === null);
+  return !state.draft.announcementTouched;
 }
 
 export type PlayAction =
   | { type: 'INIT'; playerCount: number }
   | { type: 'CLEAR' }
-  | { type: 'SET_ANNOUNCEMENT'; index: number; value: number | null }
-  | { type: 'SET_TRICK'; index: number; value: number | null }
+  | { type: 'SET_ANNOUNCEMENT'; index: number; value: number }
+  | { type: 'SET_TRICK'; index: number; value: number }
   | { type: 'GO_TO_RESULTS' }
   | { type: 'FINALIZE_ROUND' }
   | { type: 'END_GAME' };
@@ -72,7 +75,11 @@ export function gamePlayReducer(
       announcements[action.index] = action.value;
       return {
         ...state,
-        draft: { ...state.draft, announcements },
+        draft: {
+          ...state.draft,
+          announcements,
+          announcementTouched: true,
+        },
       };
     }
     case 'SET_TRICK': {
@@ -94,7 +101,8 @@ export function gamePlayReducer(
         draft: {
           ...state.draft,
           step: 'results',
-          tricks: state.draft.tricks.map(() => null),
+          /** Préremplit avec les annonces pour accélérer la saisie (ajustement au besoin). */
+          tricks: [...state.draft.announcements],
         },
       };
     }
@@ -104,8 +112,8 @@ export function gamePlayReducer(
       if (!allSlotsFilled(state.draft.announcements) || !allSlotsFilled(state.draft.tricks)) {
         return state;
       }
-      const announcements = state.draft.announcements as number[];
-      const tricks = state.draft.tricks as number[];
+      const announcements = state.draft.announcements;
+      const tricks = state.draft.tricks;
       const scores = computeRoundScoresForPlayers(announcements, tricks);
       const n = announcements.length;
       const completed: CompletedRound = {
@@ -120,8 +128,9 @@ export function gamePlayReducer(
         roundsCompleted: [...state.roundsCompleted, completed],
         draft: {
           step: 'announce',
-          announcements: Array.from({ length: n }, () => null),
-          tricks: Array.from({ length: n }, () => null),
+          announcements: Array.from({ length: n }, () => 0),
+          tricks: Array.from({ length: n }, () => 0),
+          announcementTouched: false,
         },
       };
     }
