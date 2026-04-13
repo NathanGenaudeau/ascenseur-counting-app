@@ -53,11 +53,15 @@ export function NumericStepper({
         accessibilityLabel="Diminuer"
         disabled={!canDecrement}
         onPress={handleMinus}
-        className={`rounded-lg border px-4 py-2 ${
+        className={`rounded-lg border px-3 py-1.5 ${
           canDecrement ? 'border-neutral-300 bg-white active:bg-neutral-100' : 'border-neutral-200 bg-neutral-100'
         }`}
       >
-        <Text className={`text-lg ${canDecrement ? 'text-neutral-900' : 'text-neutral-400'}`}>−</Text>
+        <Text
+          className={`text-2xl font-semibold leading-tight ${canDecrement ? 'text-neutral-900' : 'text-neutral-400'}`}
+        >
+          −
+        </Text>
       </Pressable>
       <Text
         testID={`${testID}-value`}
@@ -72,11 +76,15 @@ export function NumericStepper({
         accessibilityLabel="Augmenter"
         disabled={!canIncrement}
         onPress={handlePlus}
-        className={`rounded-lg border px-4 py-2 ${
+        className={`rounded-lg border px-3 py-1.5 ${
           canIncrement ? 'border-neutral-300 bg-white active:bg-neutral-100' : 'border-neutral-200 bg-neutral-100'
         }`}
       >
-        <Text className={`text-lg ${canIncrement ? 'text-neutral-900' : 'text-neutral-400'}`}>+</Text>
+        <Text
+          className={`text-2xl font-semibold leading-tight ${canIncrement ? 'text-neutral-900' : 'text-neutral-400'}`}
+        >
+          +
+        </Text>
       </Pressable>
     </View>
   );

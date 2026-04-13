@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- mock Jest doit charger le mock CommonJS */
+import 'react-native-gesture-handler/jestSetup';
 import '@testing-library/react-native';
 
 const mockAsyncStorage = require('@react-native-async-storage/async-storage/jest/async-storage-mock');

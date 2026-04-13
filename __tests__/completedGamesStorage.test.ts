@@ -1,9 +1,14 @@
+import { deleteGameById } from '../src/data/repositories/gamesRepository';
 import { loadFinishedGameRecordsFromSupabase } from '../src/data/repositories/finishedGamesLoader';
 import type { FinishedGameRecord } from '../src/domain/finishedGameRecord';
-import { loadCompletedGames } from '../src/services/completedGamesStorage';
+import { deleteCompletedGame, loadCompletedGames } from '../src/services/completedGamesStorage';
 
 jest.mock('../src/data/repositories/finishedGamesLoader', () => ({
   loadFinishedGameRecordsFromSupabase: jest.fn(),
+}));
+
+jest.mock('../src/data/repositories/gamesRepository', () => ({
+  deleteGameById: jest.fn(),
 }));
 
 describe('completedGamesStorage (Supabase)', () => {
@@ -22,5 +27,14 @@ describe('completedGamesStorage (Supabase)', () => {
 
     expect(loadFinishedGameRecordsFromSupabase).toHaveBeenCalled();
     expect(list).toEqual([sample]);
+  });
+
+  it('deleteCompletedGame délègue à deleteGameById', async () => {
+    jest.mocked(deleteGameById).mockResolvedValueOnce(true);
+
+    const ok = await deleteCompletedGame('gid');
+
+    expect(deleteGameById).toHaveBeenCalledWith('gid');
+    expect(ok).toBe(true);
   });
 });

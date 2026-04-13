@@ -10,14 +10,22 @@ export type GameDraftSettings = {
   extensions?: Record<string, unknown>;
   /** Exemple de paramètre optionnel (extensibilité UI). */
   notes?: string;
+  /** Anciennes configs ; ignoré (pic défini en partie par « Descendre »). */
+  maxCardsPerRound?: number;
 };
 
 export type PlayerSlotDraft = {
+  /** Identifiant stable pour la liste (réordonnancement, clés React). */
+  slotKey: string;
   /** Nom affiché (obligatoire pour démarrer si pas de contournement métier). */
   displayName: string;
   /** Si renseigné, référence un joueur persisté (ASC-25). */
   playerId?: string;
 };
+
+export function createSlotKey(): string {
+  return `slot_${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
+}
 
 export type GameConfigurationDraft = {
   playerCount: number;
@@ -38,9 +46,12 @@ function normalizeName(name: string): string {
 }
 
 export function ensureSlotsLength(slots: PlayerSlotDraft[], count: number): PlayerSlotDraft[] {
-  const next = slots.slice(0, count);
+  const next = slots.slice(0, count).map((s) => ({
+    ...s,
+    slotKey: s.slotKey ?? createSlotKey(),
+  }));
   while (next.length < count) {
-    next.push({ displayName: '' });
+    next.push({ displayName: '', slotKey: createSlotKey() });
   }
   return next;
 }
@@ -49,7 +60,7 @@ export function createDefaultDraft(playerCount = 4): GameConfigurationDraft {
   const n = Math.min(PLAYER_COUNT_MAX, Math.max(PLAYER_COUNT_MIN, playerCount));
   return {
     playerCount: n,
-    slots: Array.from({ length: n }, () => ({ displayName: '' })),
+    slots: Array.from({ length: n }, () => ({ displayName: '', slotKey: createSlotKey() })),
     settings: { extensions: {} },
   };
 }
@@ -115,7 +126,11 @@ export function serializeGameConfigurationDraft(draft: GameConfigurationDraft): 
   return JSON.stringify({
     version: 1 as const,
     playerCount: draft.playerCount,
-    slots: draft.slots.map((s) => ({ displayName: s.displayName, playerId: s.playerId })),
+    slots: draft.slots.map((s) => ({
+      displayName: s.displayName,
+      playerId: s.playerId,
+      slotKey: s.slotKey,
+    })),
     settings: draft.settings,
   });
 }
@@ -136,6 +151,7 @@ export function parseGameConfigurationDraft(json: string): GameConfigurationDraf
       return {
         displayName: typeof r.displayName === 'string' ? r.displayName : '',
         playerId: typeof r.playerId === 'string' ? r.playerId : undefined,
+        slotKey: typeof r.slotKey === 'string' ? r.slotKey : createSlotKey(),
       };
     });
     const parsedSettings: GameDraftSettings =

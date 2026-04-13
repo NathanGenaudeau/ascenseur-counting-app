@@ -1,13 +1,13 @@
 import { useIsFocused } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScoreEvolutionChart } from '../components/ScoreEvolutionChart';
 import type { FinishedGameRecord } from '../domain/finishedGameRecord';
 import { buildFinalRanking } from '../domain/gameOutcome';
 import { computeCumulativeScores } from '../domain/scoring';
-import { loadCompletedGames } from '../services/completedGamesStorage';
+import { deleteCompletedGame, loadCompletedGames } from '../services/completedGamesStorage';
 
 function formatEndedAt(iso: string): string {
   try {
@@ -24,6 +24,11 @@ export function HistoryScreen() {
   const [selected, setSelected] = useState<FinishedGameRecord | null>(null);
   const isFocused = useIsFocused();
 
+  const refreshGames = useCallback(async () => {
+    const list = await loadCompletedGames();
+    setGames(list);
+  }, []);
+
   useEffect(() => {
     if (!isFocused) return;
     let cancelled = false;
@@ -35,6 +40,34 @@ export function HistoryScreen() {
       cancelled = true;
     };
   }, [isFocused]);
+
+  const requestDeleteGame = useCallback(
+    (game: FinishedGameRecord, afterDelete: () => void) => {
+      Alert.alert(
+        'Supprimer la partie ?',
+        'Toutes les données de cette partie (manches, scores, participants liés à la partie) seront définitivement supprimées.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Supprimer',
+            style: 'destructive',
+            onPress: () => {
+              void (async () => {
+                const ok = await deleteCompletedGame(game.id);
+                if (ok) {
+                  afterDelete();
+                  await refreshGames();
+                } else {
+                  Alert.alert('Erreur', 'La suppression a échoué. Vérifiez la connexion ou réessayez.');
+                }
+              })();
+            },
+          },
+        ],
+      );
+    },
+    [refreshGames],
+  );
 
   if (selected) {
     const cum = computeCumulativeScores(selected.roundsCompleted, selected.playerNames.length);
@@ -83,6 +116,19 @@ export function HistoryScreen() {
               roundsCompleted={selected.roundsCompleted}
               playerNames={selected.playerNames}
             />
+
+            <Pressable
+              testID="history-detail-delete"
+              accessibilityRole="button"
+              onPress={() =>
+                requestDeleteGame(selected, () => {
+                  setSelected(null);
+                })
+              }
+              className="mt-8 rounded-xl border border-red-200 bg-red-50 py-3 active:bg-red-100"
+            >
+              <Text className="text-center text-base font-medium text-red-700">Supprimer cette partie</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -108,20 +154,31 @@ export function HistoryScreen() {
         renderItem={({ item }) => {
           const n = item.roundsCompleted.length;
           return (
-            <Pressable
-              testID={`history-item-${item.id}`}
-              accessibilityRole="button"
-              onPress={() => setSelected(item)}
-              className="mb-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 active:bg-neutral-100"
-            >
-              <Text className="text-base font-medium text-neutral-900">{formatEndedAt(item.endedAt)}</Text>
-              <Text className="mt-1 text-sm text-neutral-700" numberOfLines={2}>
-                {item.playerNames.join(', ')}
-              </Text>
-              <Text className="mt-2 text-xs text-neutral-500">
-                {n} manche{n > 1 ? 's' : ''}
-              </Text>
-            </Pressable>
+            <View className="mb-3 flex-row overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+              <Pressable
+                testID={`history-item-${item.id}`}
+                accessibilityRole="button"
+                onPress={() => setSelected(item)}
+                className="min-w-0 flex-1 p-4 active:bg-neutral-100"
+              >
+                <Text className="text-base font-medium text-neutral-900">{formatEndedAt(item.endedAt)}</Text>
+                <Text className="mt-1 text-sm text-neutral-700" numberOfLines={2}>
+                  {item.playerNames.join(', ')}
+                </Text>
+                <Text className="mt-2 text-xs text-neutral-500">
+                  {n} manche{n > 1 ? 's' : ''}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID={`history-delete-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel="Supprimer la partie"
+                onPress={() => requestDeleteGame(item, () => {})}
+                className="justify-center border-l border-neutral-200 px-3 active:bg-red-50"
+              >
+                <Text className="text-sm font-medium text-red-600">Supprimer</Text>
+              </Pressable>
+            </View>
           );
         }}
       />

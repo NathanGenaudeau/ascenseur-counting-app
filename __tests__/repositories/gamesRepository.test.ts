@@ -4,6 +4,7 @@ import type { Database } from '../../src/data/database.types';
 import {
   addPlayersToGame,
   createGame,
+  deleteGameById,
   getGameById,
   getGameParticipants,
 } from '../../src/data/repositories/gamesRepository';
@@ -124,5 +125,23 @@ describe('gamesRepository (ASC-49)', () => {
 
     const g = await getGameById('g1');
     expect(g?.status).toBe('finished');
+  });
+
+  it('deleteGameById retourne false sans client', async () => {
+    jest.mocked(getTypedSupabaseClient).mockReturnValue(null);
+    await expect(deleteGameById('g1')).resolves.toBe(false);
+  });
+
+  it('deleteGameById supprime la ligne games par id', async () => {
+    const eq = jest.fn(() => Promise.resolve({ error: null }));
+    const del = jest.fn(() => ({ eq }));
+    const from = jest.fn(() => ({ delete: del }));
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
+
+    const ok = await deleteGameById('g1');
+
+    expect(ok).toBe(true);
+    expect(from).toHaveBeenCalledWith('games');
+    expect(eq).toHaveBeenCalledWith('id', 'g1');
   });
 });

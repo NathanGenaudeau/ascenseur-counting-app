@@ -10,10 +10,13 @@ import React, {
 } from 'react';
 
 import type { GameDraftSettings } from '../domain/gameConfigurationDraft';
+import { minRoundIndexToAllowEndGame } from '../domain/cardSequence';
 import {
   allSlotsFilled,
+  announcementsTotalForbiddenForRound,
   gamePlayReducer,
   isBetweenRounds,
+  tricksDraftTotalMatchesCardsDealt,
   type GamePlayState,
   type PlayAction,
 } from '../domain/gamePlayState';
@@ -43,7 +46,9 @@ type GameSessionContextValue = {
   setAnnouncementDraft: (playerIndex: number, value: number) => void;
   setTrickDraft: (playerIndex: number, value: number) => void;
   goToResultsStep: () => void;
+  backToAnnounceStep: () => void;
   finalizeRound: () => void;
+  startDescent: () => void;
   cumulativeScores: number[];
   canGoToResults: boolean;
   canFinalizeRound: boolean;
@@ -68,7 +73,10 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
     if (s) {
       lastSyncedRoundCountRef.current = 0;
       thresholdRoundFingerprintRef.current = null;
-      playDispatch({ type: 'INIT', playerCount: s.players.length });
+      playDispatch({
+        type: 'INIT',
+        playerCount: s.players.length,
+      });
     } else {
       playDispatch({ type: 'CLEAR' });
     }
@@ -93,8 +101,16 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
     playDispatch({ type: 'GO_TO_RESULTS' });
   }, []);
 
+  const backToAnnounceStep = useCallback(() => {
+    playDispatch({ type: 'BACK_TO_ANNOUNCE' });
+  }, []);
+
   const finalizeRound = useCallback(() => {
     playDispatch({ type: 'FINALIZE_ROUND' });
+  }, []);
+
+  const startDescent = useCallback(() => {
+    playDispatch({ type: 'START_DESCENT' });
   }, []);
 
   const endGame = useCallback(() => {
@@ -146,18 +162,33 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
 
   const canGoToResults = useMemo(() => {
     if (!playState || playState.draft.step !== 'announce') return false;
-    return allSlotsFilled(playState.draft.announcements);
+    if (!allSlotsFilled(playState.draft.announcements)) return false;
+    return !announcementsTotalForbiddenForRound(
+      playState.draft.announcements,
+      playState.currentRoundIndex,
+      playState.descentStartRound,
+    );
   }, [playState]);
 
   const canFinalizeRound = useMemo(() => {
     if (!playState || playState.draft.step !== 'results') return false;
-    return allSlotsFilled(playState.draft.announcements) && allSlotsFilled(playState.draft.tricks);
+    if (!allSlotsFilled(playState.draft.announcements) || !allSlotsFilled(playState.draft.tricks)) {
+      return false;
+    }
+    return tricksDraftTotalMatchesCardsDealt(
+      playState.draft.tricks,
+      playState.currentRoundIndex,
+      playState.descentStartRound,
+    );
   }, [playState]);
 
   const canEndGame = useMemo(() => {
     if (!playState || playState.phase !== 'active') return false;
     if (playState.roundsCompleted.length < 1) return false;
-    return isBetweenRounds(playState);
+    if (!isBetweenRounds(playState)) return false;
+    const minR = minRoundIndexToAllowEndGame(playState.descentStartRound);
+    if (minR === null) return false;
+    return playState.currentRoundIndex >= minR;
   }, [playState]);
 
   const value = useMemo(
@@ -169,7 +200,9 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
       setAnnouncementDraft,
       setTrickDraft,
       goToResultsStep,
+      backToAnnounceStep,
       finalizeRound,
+      startDescent,
       cumulativeScores,
       canGoToResults,
       canFinalizeRound,
@@ -184,7 +217,9 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
       setAnnouncementDraft,
       setTrickDraft,
       goToResultsStep,
+      backToAnnounceStep,
       finalizeRound,
+      startDescent,
       cumulativeScores,
       canGoToResults,
       canFinalizeRound,

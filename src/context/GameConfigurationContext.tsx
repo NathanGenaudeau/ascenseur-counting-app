@@ -14,6 +14,7 @@ import React, {
 import type { RootTabParamList } from '../navigation/AppNavigator';
 import {
   createDefaultDraft,
+  createSlotKey,
   ensureSlotsLength,
   PLAYER_COUNT_MAX,
   PLAYER_COUNT_MIN,
@@ -35,6 +36,7 @@ type Action =
   | { type: 'SET_PLAYER_COUNT'; count: number }
   | { type: 'SET_SLOT_NAME'; index: number; value: string }
   | { type: 'SET_SLOT_FROM_PLAYER'; index: number; player: PlayerDocument }
+  | { type: 'SET_SLOTS_ORDER'; slots: GameConfigurationDraft['slots'] }
   | { type: 'SET_NOTES'; notes: string };
 
 function configurationReducer(
@@ -42,8 +44,14 @@ function configurationReducer(
   action: Action,
 ): GameConfigurationDraft {
   switch (action.type) {
-    case 'SET_DRAFT':
-      return action.draft;
+    case 'SET_DRAFT': {
+      const count = action.draft.playerCount;
+      const slots = ensureSlotsLength(
+        action.draft.slots.map((s) => ({ ...s, slotKey: s.slotKey ?? createSlotKey() })),
+        count,
+      );
+      return { ...action.draft, slots };
+    }
     case 'SET_PLAYER_COUNT': {
       const count = Math.min(PLAYER_COUNT_MAX, Math.max(PLAYER_COUNT_MIN, action.count));
       return {
@@ -54,17 +62,27 @@ function configurationReducer(
     }
     case 'SET_SLOT_NAME': {
       const slots = [...state.slots];
-      slots[action.index] = { displayName: action.value, playerId: undefined };
+      const prev = slots[action.index];
+      slots[action.index] = {
+        displayName: action.value,
+        playerId: undefined,
+        slotKey: prev.slotKey ?? createSlotKey(),
+      };
       return { ...state, slots };
     }
     case 'SET_SLOT_FROM_PLAYER': {
       const slots = [...state.slots];
+      const prev = slots[action.index];
       slots[action.index] = {
         displayName: action.player.displayName,
         playerId: action.player._id,
+        slotKey: prev.slotKey ?? createSlotKey(),
       };
       return { ...state, slots };
     }
+    case 'SET_SLOTS_ORDER':
+      if (action.slots.length !== state.playerCount) return state;
+      return { ...state, slots: action.slots };
     case 'SET_NOTES':
       return {
         ...state,
@@ -85,6 +103,7 @@ type GameConfigurationContextValue = {
   setPlayerCount: (n: number) => void;
   setSlotName: (index: number, value: string) => void;
   setSlotFromPlayer: (index: number, player: PlayerDocument) => void;
+  setSlotsOrder: (slots: GameConfigurationDraft['slots']) => void;
   setNotes: (notes: string) => void;
   loadLastSavedConfiguration: () => Promise<void>;
   startGame: () => Promise<void>;
@@ -141,6 +160,11 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
     dispatch({ type: 'SET_SLOT_FROM_PLAYER', index, player });
   }, []);
 
+  const setSlotsOrder = useCallback((slots: GameConfigurationDraft['slots']) => {
+    skipInitialRemoteHydrationRef.current = true;
+    dispatch({ type: 'SET_SLOTS_ORDER', slots });
+  }, []);
+
   const setNotes = useCallback((notes: string) => {
     skipInitialRemoteHydrationRef.current = true;
     dispatch({ type: 'SET_NOTES', notes });
@@ -176,6 +200,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
         slots: draft.slots.map((s, i) => ({
           displayName: remote.players[i]?.displayName ?? s.displayName.trim(),
           playerId: remote.players[i]?.playerId,
+          slotKey: s.slotKey,
         })),
       };
 
@@ -211,6 +236,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
       setPlayerCount,
       setSlotName,
       setSlotFromPlayer,
+      setSlotsOrder,
       setNotes,
       loadLastSavedConfiguration,
       startGame,
@@ -225,6 +251,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
       setPlayerCount,
       setSlotName,
       setSlotFromPlayer,
+      setSlotsOrder,
       setNotes,
       loadLastSavedConfiguration,
       startGame,

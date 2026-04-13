@@ -12,8 +12,9 @@ describe('finishedGameRecord', () => {
     s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 0, value: 2 })!;
     s = gamePlayReducer(s, { type: 'SET_ANNOUNCEMENT', index: 1, value: 2 })!;
     s = gamePlayReducer(s, { type: 'GO_TO_RESULTS' })!;
-    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 0, value: 2 })!;
-    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 1, value: 2 })!;
+    /** Manche 1 : total des plis = 1 carte en main. */
+    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 0, value: 1 })!;
+    s = gamePlayReducer(s, { type: 'SET_TRICK', index: 1, value: 0 })!;
     s = gamePlayReducer(s, { type: 'FINALIZE_ROUND' })!;
 
     const record = buildFinishedGameRecord(

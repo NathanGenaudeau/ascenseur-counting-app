@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -27,6 +28,7 @@ export function GameConfigurationScreen() {
     setPlayerCount,
     setSlotName,
     setSlotFromPlayer,
+    setSlotsOrder,
     setNotes,
     loadLastSavedConfiguration,
     startGame,
@@ -60,6 +62,20 @@ export function GameConfigurationScreen() {
       closePicker();
     },
     [modalIndex, setSlotFromPlayer, closePicker],
+  );
+
+  const moveSlot = useCallback(
+    (fromIndex: number, direction: -1 | 1) => {
+      const toIndex = fromIndex + direction;
+      if (toIndex < 0 || toIndex >= draft.slots.length) return;
+      const next = [...draft.slots];
+      const a = next[fromIndex]!;
+      const b = next[toIndex]!;
+      next[fromIndex] = b;
+      next[toIndex] = a;
+      setSlotsOrder(next);
+    },
+    [draft.slots, setSlotsOrder],
   );
 
   return (
@@ -116,37 +132,56 @@ export function GameConfigurationScreen() {
               className="mb-6 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-base text-neutral-900"
             />
 
-            <Text className="mb-2 text-sm font-medium text-neutral-700">Joueurs</Text>
             {draft.slots.map((slot, index) => (
-              <View key={index} testID={`player-slot-${index}`} className="mb-4">
-                <Text className="mb-1 text-xs text-neutral-500">Joueur {index + 1}</Text>
-                <TextInput
-                  testID={`player-name-input-${index}`}
-                  value={slot.displayName}
-                  onChangeText={(t) => setSlotName(index, t)}
-                  placeholder="Nom affiché"
-                  autoCapitalize="words"
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base text-neutral-900"
-                />
+              <View key={slot.slotKey} testID={`player-slot-${index}`} className="mb-4">
+                <View className="mb-1 flex-row items-center justify-between">
+                  <Text className="text-xs text-neutral-500">Joueur {index + 1}</Text>
+                  <View className="flex-row items-center gap-1">
+                    <Pressable
+                      testID={`player-move-up-${index}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Monter le joueur"
+                      disabled={index === 0}
+                      onPress={() => moveSlot(index, -1)}
+                      className={`rounded-md p-2 ${index === 0 ? 'opacity-30' : 'active:bg-neutral-100'}`}
+                    >
+                      <ChevronUp size={20} color="#404040" />
+                    </Pressable>
+                    <Pressable
+                      testID={`player-move-down-${index}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Descendre le joueur"
+                      disabled={index >= draft.slots.length - 1}
+                      onPress={() => moveSlot(index, 1)}
+                      className={`rounded-md p-2 ${index >= draft.slots.length - 1 ? 'opacity-30' : 'active:bg-neutral-100'}`}
+                    >
+                      <ChevronDown size={20} color="#404040" />
+                    </Pressable>
+                  </View>
+                </View>
+                <View className="flex-row items-stretch gap-2">
+                  <TextInput
+                    testID={`player-name-input-${index}`}
+                    value={slot.displayName}
+                    onChangeText={(t) => setSlotName(index, t)}
+                    placeholder="Nom affiché"
+                    autoCapitalize="words"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base text-neutral-900"
+                  />
+                  <Pressable
+                    testID={`pick-player-button-${index}`}
+                    accessibilityRole="button"
+                    onPress={() => openPicker(index)}
+                    className="shrink-0 justify-center rounded-md bg-neutral-100 px-2 py-2"
+                  >
+                    <Text className="text-center text-xs text-neutral-800">
+                      Choisir un joueur existant
+                    </Text>
+                  </Pressable>
+                </View>
                 {validation.slotErrors[index] ? (
                   <Text testID={`player-slot-error-${index}`} className="mt-1 text-sm text-red-600">
                     {validation.slotErrors[index]}
-                  </Text>
-                ) : null}
-                <Pressable
-                  testID={`pick-player-button-${index}`}
-                  accessibilityRole="button"
-                  onPress={() => openPicker(index)}
-                  className="mt-2 self-start rounded-md bg-neutral-100 px-3 py-2"
-                >
-                  <Text className="text-sm text-neutral-800">Choisir un joueur existant</Text>
-                </Pressable>
-                {slot.playerId ? (
-                  <Text
-                    testID={`player-linked-id-${index}`}
-                    className="mt-1 text-xs text-neutral-500"
-                  >
-                    Réf. joueur : {slot.playerId}
                   </Text>
                 ) : null}
               </View>

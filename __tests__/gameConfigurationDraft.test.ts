@@ -10,9 +10,9 @@ import {
 describe('validateGameConfigurationDraft', () => {
   it('accepte une configuration minimale valide', () => {
     const draft = createDefaultDraft(3);
-    draft.slots[0] = { displayName: 'A' };
-    draft.slots[1] = { displayName: 'B' };
-    draft.slots[2] = { displayName: 'C' };
+    draft.slots[0] = { ...draft.slots[0], displayName: 'A' };
+    draft.slots[1] = { ...draft.slots[1], displayName: 'B' };
+    draft.slots[2] = { ...draft.slots[2], displayName: 'C' };
     const r = validateGameConfigurationDraft(draft);
     expect(r.valid).toBe(true);
   });
@@ -27,9 +27,9 @@ describe('validateGameConfigurationDraft', () => {
 
   it('refuse un nom vide', () => {
     const draft = createDefaultDraft(3);
-    draft.slots[0] = { displayName: 'A' };
-    draft.slots[1] = { displayName: '' };
-    draft.slots[2] = { displayName: 'C' };
+    draft.slots[0] = { ...draft.slots[0], displayName: 'A' };
+    draft.slots[1] = { ...draft.slots[1], displayName: '' };
+    draft.slots[2] = { ...draft.slots[2], displayName: 'C' };
     const r = validateGameConfigurationDraft(draft);
     expect(r.valid).toBe(false);
     expect(r.slotErrors[1]).toBe('Nom requis');
@@ -37,9 +37,9 @@ describe('validateGameConfigurationDraft', () => {
 
   it('refuse deux noms identiques (casse / espaces)', () => {
     const draft = createDefaultDraft(3);
-    draft.slots[0] = { displayName: ' same ' };
-    draft.slots[1] = { displayName: 'Same' };
-    draft.slots[2] = { displayName: 'Other' };
+    draft.slots[0] = { ...draft.slots[0], displayName: ' same ' };
+    draft.slots[1] = { ...draft.slots[1], displayName: 'Same' };
+    draft.slots[2] = { ...draft.slots[2], displayName: 'Other' };
     const r = validateGameConfigurationDraft(draft);
     expect(r.valid).toBe(false);
     expect(r.duplicateNamesError).toBeDefined();
@@ -49,9 +49,9 @@ describe('validateGameConfigurationDraft', () => {
 describe('sérialisation configuration', () => {
   it('round-trip JSON', () => {
     const draft = createDefaultDraft(PLAYER_COUNT_MIN);
-    draft.slots[0] = { displayName: 'A', playerId: 'id1' };
-    draft.slots[1] = { displayName: 'B' };
-    draft.slots[2] = { displayName: 'C' };
+    draft.slots[0] = { ...draft.slots[0], displayName: 'A', playerId: 'id1' };
+    draft.slots[1] = { ...draft.slots[1], displayName: 'B' };
+    draft.slots[2] = { ...draft.slots[2], displayName: 'C' };
     draft.settings.notes = 'hello';
     const json = serializeGameConfigurationDraft(draft);
     const back = parseGameConfigurationDraft(json);

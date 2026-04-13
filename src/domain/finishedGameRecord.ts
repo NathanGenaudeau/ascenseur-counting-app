@@ -33,6 +33,7 @@ function isCompletedRound(value: unknown): value is CompletedRound {
   const o = value as Record<string, unknown>;
   if (typeof o.roundIndex !== 'number') return false;
   if (!Array.isArray(o.announcements) || !Array.isArray(o.tricks) || !Array.isArray(o.scores)) return false;
+  if (o.cardsPerHand !== undefined && typeof o.cardsPerHand !== 'number') return false;
   return true;
 }
 

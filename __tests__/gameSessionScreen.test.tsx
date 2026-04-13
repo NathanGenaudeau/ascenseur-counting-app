@@ -65,31 +65,57 @@ describe('GameSessionScreen (phase 5)', () => {
 
     expect(screen.getByTestId('cumulative-score-0').props.children).toBe(0);
 
-    pressPlusToValue('announce-input-0', 3);
-    pressPlusToValue('announce-input-1', 3);
-    pressPlusToValue('announce-input-2', 3);
-
+    /** Manche 1 : total annonces ≠ 1 carte (interdit [1,0,0]) — annonces [0,0,0]. */
     fireEvent.press(screen.getByTestId('validate-announcements-button'));
 
     await waitFor(() => {
       expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
     });
 
-    expect(screen.getByTestId('recap-announce-0').props.children).toBe(3);
-
-    /** Plis préremplis sur les annonces [3,3,3] : ajuster seulement B de 3 → 2. */
-    fireEvent.press(screen.getByTestId('tricks-input-1-minus'));
-
+    /** Total des plis réalisés = 1 carte en main : [1,0,0]. */
+    pressPlusToValue('tricks-input-0', 1);
     fireEvent.press(screen.getByTestId('finalize-round-button'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('cumulative-score-0').props.children).toBe(3);
+      expect(screen.getByTestId('cumulative-score-0').props.children).toBe(-1);
     });
-    expect(screen.getByTestId('cumulative-score-1').props.children).toBe(-1);
+    expect(screen.getByTestId('cumulative-score-1').props.children).toBe(0);
 
     expect(screen.getByTestId('score-evolution-chart')).toBeOnTheScreen();
     expect(screen.getByTestId('chart-legend-row-0')).toBeOnTheScreen();
-    expect(screen.getByTestId('end-game-button')).toBeOnTheScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('start-descent-button')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('start-descent-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('end-game-button')).toBeOnTheScreen();
+    });
+  });
+
+  it('permet de revenir aux annonces après validation pour les corriger', async () => {
+    render(<SessionTestRoot />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cumulative-score-0')).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId('validate-announcements-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId('back-to-announce-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('announce-input-0-plus')).toBeOnTheScreen();
+    });
+    expect(screen.queryByTestId('tricks-input-0-plus')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('validate-announcements-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
+    });
   });
 });
 
@@ -101,15 +127,17 @@ describe('GameSessionScreen (phase 7)', () => {
       expect(screen.getByTestId('cumulative-score-0')).toBeOnTheScreen();
     });
 
-    pressPlusToValue('announce-input-0', 3);
-    pressPlusToValue('announce-input-1', 3);
-    pressPlusToValue('announce-input-2', 3);
     fireEvent.press(screen.getByTestId('validate-announcements-button'));
     await waitFor(() => {
       expect(screen.getByTestId('tricks-input-0-plus')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('tricks-input-1-minus'));
+    pressPlusToValue('tricks-input-0', 1);
     fireEvent.press(screen.getByTestId('finalize-round-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('start-descent-button')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('start-descent-button'));
 
     await waitFor(() => {
       expect(screen.getByTestId('end-game-button')).toBeOnTheScreen();
@@ -124,7 +152,7 @@ describe('GameSessionScreen (phase 7)', () => {
     fireEvent.press(screen.getByTestId('summary-new-game-button'));
     fireEvent.press(screen.getByLabelText('GameSession, tab, 2 of 4'));
     await waitFor(() => {
-      expect(screen.getByText('Démarrez une partie depuis l’onglet Configuration.')).toBeOnTheScreen();
+      expect(screen.getByText('Partie en cours')).toBeOnTheScreen();
     });
   });
 });

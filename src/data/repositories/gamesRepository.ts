@@ -112,3 +112,14 @@ export async function updateGame(
   }
   return !error;
 }
+
+/** Supprime une partie et, via CASCADE côté Postgres, manches, résultats et liaisons joueurs. */
+export async function deleteGameById(gameId: string): Promise<boolean> {
+  const client = getTypedSupabaseClient();
+  if (!client) return false;
+  const { error } = await client.from('games').delete().eq('id', gameId);
+  if (error && __DEV__) {
+    console.warn('[games] delete', error.message);
+  }
+  return !error;
+}

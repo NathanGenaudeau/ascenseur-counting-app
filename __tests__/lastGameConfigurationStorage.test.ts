@@ -16,9 +16,9 @@ describe('lastGameConfiguration (Supabase)', () => {
 
   it('persiste via le module Supabase', async () => {
     const draft = createDefaultDraft(3);
-    draft.slots[0] = { displayName: 'X' };
-    draft.slots[1] = { displayName: 'Y' };
-    draft.slots[2] = { displayName: 'Z' };
+    draft.slots[0] = { ...draft.slots[0], displayName: 'X' };
+    draft.slots[1] = { ...draft.slots[1], displayName: 'Y' };
+    draft.slots[2] = { ...draft.slots[2], displayName: 'Z' };
 
     await persistLastGameConfiguration(draft);
 

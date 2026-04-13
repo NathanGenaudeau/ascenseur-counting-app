@@ -32,10 +32,6 @@ export function GameSummaryView({
         >
           Partie terminée
         </Text>
-        <Text className="mb-6 text-sm text-neutral-600">
-          Voici le classement et quelques faits marquants.
-        </Text>
-
         <Text className="mb-2 text-sm font-medium text-neutral-700">Classement final</Text>
         <View className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
           {ranking.map((row, i) => (
