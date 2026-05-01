@@ -16,7 +16,7 @@ export function GlobalWinsBarChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <Text testID="global-wins-chart-empty" className="text-sm text-neutral-500">
+      <Text testID="global-wins-chart-empty" className="text-sm text-primary-600">
         Pas assez de données pour un graphique.
       </Text>
     );
@@ -29,14 +29,14 @@ export function GlobalWinsBarChart({ data }: Props) {
         return (
           <View key={`${row.displayName}-${i}`} testID={`global-wins-bar-row-${i}`} className="gap-1">
             <View className="flex-row items-center justify-between">
-              <Text className="max-w-[40%] text-sm text-neutral-800" numberOfLines={1}>
+              <Text className="max-w-[40%] text-sm text-primary-800" numberOfLines={1}>
                 {row.displayName}
               </Text>
-              <Text className="text-sm font-medium text-neutral-900">{row.wins}</Text>
+              <Text className="text-sm font-medium text-primary-900">{row.wins}</Text>
             </View>
-            <View className="h-3 overflow-hidden rounded-full bg-neutral-200" style={{ width: chartWidth }}>
+            <View className="h-3 overflow-hidden rounded-full bg-secondary-100" style={{ width: chartWidth }}>
               <View
-                className="h-3 rounded-full bg-neutral-800"
+                className="h-3 rounded-full bg-secondary-700"
                 style={{ width: `${pct}%` }}
               />
             </View>

@@ -12,9 +12,9 @@ describe('GameSummaryView (ASC-20)', () => {
         roundsCompleted={[
           {
             roundIndex: 1,
-            announcements: [],
-            tricks: [],
-            scores: [2, 0],
+            announcements: [1, 1],
+            tricks: [1, 1],
+            scores: [1, 1],
           },
         ]}
         onNewGame={onNewGame}
@@ -22,6 +22,8 @@ describe('GameSummaryView (ASC-20)', () => {
     );
     expect(screen.getByTestId('game-summary-title')).toBeOnTheScreen();
     expect(screen.getByTestId('summary-ranking-row-0')).toBeOnTheScreen();
+    expect(screen.getByTestId('summary-tile-bet-best')).toBeOnTheScreen();
+    expect(screen.getByTestId('summary-tile-streak-best')).toBeOnTheScreen();
     fireEvent.press(screen.getByTestId('summary-new-game-button'));
     expect(onNewGame).toHaveBeenCalledTimes(1);
   });

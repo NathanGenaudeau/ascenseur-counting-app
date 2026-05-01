@@ -15,9 +15,6 @@ describe('Navigation principale', () => {
     await waitFor(() => {
       expect(screen.getByTestId('screen-history')).toBeOnTheScreen();
     });
-    expect(
-      screen.getByText('Parties terminées enregistrées sur cet appareil.'),
-    ).toBeOnTheScreen();
   });
 
   it('permet d’accéder à l’écran Partie via l’onglet', () => {

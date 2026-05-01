@@ -1,5 +1,6 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
+import { useMemo } from 'react';
 import { Text, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,8 +9,40 @@ import { NumericStepper } from '../components/NumericStepper';
 import { ScoreEvolutionChart } from '../components/ScoreEvolutionChart';
 import { useGameSession } from '../context/GameSessionContext';
 import { cardPhaseForRound, cardsPerHandForRound } from '../domain/cardSequence';
+import { currentBetSuccessStreak } from '../domain/gameOutcome';
 import { displayOrderPlayerIndices } from '../domain/gamePlayState';
 import type { RootTabParamList } from '../navigation/AppNavigator';
+
+const STREAK_BADGE_MIN = 3;
+
+function PlayerNameWithStreakBadge({
+  playerIndex,
+  displayName,
+  streak,
+  nameTextClassName,
+}: {
+  playerIndex: number;
+  displayName: string;
+  streak: number;
+  nameTextClassName: string;
+}) {
+  return (
+    <View className="mb-2 flex-row items-center gap-1.5">
+      {streak >= STREAK_BADGE_MIN ? (
+        <Text
+          testID={`player-streak-badge-${playerIndex}`}
+          accessibilityLabel={`Série de ${streak} paris réussis`}
+          className="shrink-0 text-sm font-semibold text-secondary-700"
+        >
+          {streak}🔥
+        </Text>
+      ) : null}
+      <Text className={`min-w-0 flex-1 ${nameTextClassName}`} numberOfLines={1}>
+        {displayName}
+      </Text>
+    </View>
+  );
+}
 
 /** Borne haute pour les plis à la manche (saisie par pas de 1). */
 const MAX_TRICKS_PER_STEP = 20;
@@ -33,6 +66,15 @@ export function GameSessionScreen() {
     clearSession,
   } = useGameSession();
 
+  const playerStreaks = useMemo(() => {
+    if (!session || !playState) {
+      return [];
+    }
+    return session.players.map((_, playerIndex) =>
+      currentBetSuccessStreak(playState.roundsCompleted, playerIndex),
+    );
+  }, [session, playState]);
+
   if (!session || !playState) {
     return (
       <SafeAreaView
@@ -41,7 +83,7 @@ export function GameSessionScreen() {
         edges={['top', 'left', 'right']}
       >
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-lg font-medium text-neutral-900">Partie en cours</Text>
+          <Text className="text-lg font-medium text-primary-900">Partie en cours</Text>
         </View>
       </SafeAreaView>
     );
@@ -102,7 +144,7 @@ export function GameSessionScreen() {
             testID="card-sequence-banner"
             className="mb-4 flex-row items-center justify-between gap-2"
           >
-            <Text className="min-w-0 flex-1 text-lg font-medium text-neutral-900">
+            <Text className="min-w-0 flex-1 text-lg font-medium text-primary-900">
               Manche {currentRoundIndex} - {cardsThisRound} carte{cardsThisRound > 1 ? 's' : ''} - {phaseTitle}
             </Text>
             {showDescendButton ? (
@@ -111,9 +153,9 @@ export function GameSessionScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Descendre"
                 onPress={startDescent}
-                className="shrink-0 rounded-md border border-neutral-400 bg-white px-2.5 py-1.5 active:bg-neutral-100"
+                className="shrink-0 rounded-md border border-secondary-300 bg-secondary-50 px-2.5 py-1.5 active:bg-secondary-100"
               >
-                <Text className="text-xs font-semibold text-neutral-800">Descendre</Text>
+                <Text className="text-xs font-semibold text-secondary-900">Descendre</Text>
               </Pressable>
             ) : null}
           </View>
@@ -128,8 +170,13 @@ export function GameSessionScreen() {
               const p = session.players[i];
               return (
                 <View key={`row-${rowIdx}`} className="mb-4 flex-row justify-center">
-                  <View className="min-w-0 w-[48%] rounded-lg border border-neutral-200 p-3">
-                    <Text className="mb-2 text-base font-medium text-neutral-900">{p.displayName}</Text>
+                  <View className="min-w-0 w-[48%] rounded-lg border border-primary-200 bg-white p-3">
+                    <PlayerNameWithStreakBadge
+                      playerIndex={i}
+                      displayName={p.displayName}
+                      streak={playerStreaks[i] ?? 0}
+                      nameTextClassName="text-base font-medium text-primary-900"
+                    />
 
                     {step === 'announce' ? (
                       <NumericStepper
@@ -159,8 +206,13 @@ export function GameSessionScreen() {
                   const i = announceOrder[slot]!;
                   const p = session.players[i];
                   return (
-                    <View key={`slot-${i}`} className="min-w-0 flex-1 rounded-lg border border-neutral-200 p-3">
-                      <Text className="mb-2 text-base font-medium text-neutral-900">{p.displayName}</Text>
+                    <View key={`slot-${i}`} className="min-w-0 flex-1 rounded-lg border border-primary-200 bg-white p-3">
+                      <PlayerNameWithStreakBadge
+                        playerIndex={i}
+                        displayName={p.displayName}
+                        streak={playerStreaks[i] ?? 0}
+                        nameTextClassName="text-base font-medium text-primary-900"
+                      />
 
                       {step === 'announce' ? (
                         <NumericStepper
@@ -190,9 +242,9 @@ export function GameSessionScreen() {
               testID="end-game-button"
               accessibilityRole="button"
               onPress={endGame}
-              className="mb-3 rounded-xl border border-neutral-300 bg-white py-3"
+              className="mb-3 rounded-xl border border-secondary-300 bg-secondary-50 py-3 active:bg-secondary-100"
             >
-              <Text className="text-center text-base font-semibold text-neutral-800">
+              <Text className="text-center text-base font-semibold text-secondary-900">
                 Terminer la partie
               </Text>
             </Pressable>
@@ -205,7 +257,7 @@ export function GameSessionScreen() {
               accessibilityState={{ disabled: !canGoToResults }}
               disabled={!canGoToResults}
               onPress={goToResultsStep}
-              className={`mb-4 rounded-xl py-4 ${canGoToResults ? 'bg-neutral-900' : 'bg-neutral-300'}`}
+              className={`mb-4 rounded-xl py-4 ${canGoToResults ? 'bg-primary-800' : 'bg-neutral-300'}`}
             >
               <Text
                 className={`text-center text-base font-semibold ${canGoToResults ? 'text-white' : 'text-neutral-500'}`}
@@ -219,9 +271,9 @@ export function GameSessionScreen() {
                 testID="back-to-announce-button"
                 accessibilityRole="button"
                 onPress={backToAnnounceStep}
-                className="mb-3 rounded-xl border border-neutral-300 bg-white py-3"
+                className="mb-3 rounded-xl border border-secondary-300 bg-secondary-50 py-3 active:bg-secondary-100"
               >
-                <Text className="text-center text-base font-semibold text-neutral-800">
+                <Text className="text-center text-base font-semibold text-secondary-900">
                   Modifier les annonces
                 </Text>
               </Pressable>
@@ -231,7 +283,7 @@ export function GameSessionScreen() {
                 accessibilityState={{ disabled: !canFinalizeRound }}
                 disabled={!canFinalizeRound}
                 onPress={finalizeRound}
-                className={`mb-4 rounded-xl py-4 ${canFinalizeRound ? 'bg-emerald-700' : 'bg-neutral-300'}`}
+                className={`mb-4 rounded-xl py-4 ${canFinalizeRound ? 'bg-primary-700' : 'bg-neutral-300'}`}
               >
                 <Text
                   className={`text-center text-base font-semibold ${canFinalizeRound ? 'text-white' : 'text-neutral-500'}`}
@@ -248,17 +300,17 @@ export function GameSessionScreen() {
             playerNames={session.players.map((p) => p.displayName)}
           />
 
-          <View className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+          <View className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-3">
             {scoreRowsSorted.map(({ playerIndex, displayName, score }) => (
               <View
                 key={`cum-${displayName}-${playerIndex}`}
                 testID={`cumulative-score-row-${playerIndex}`}
                 className="mb-2 flex-row justify-between last:mb-0"
               >
-                <Text className="text-base text-neutral-800">{displayName}</Text>
+                <Text className="text-base text-primary-800">{displayName}</Text>
                 <Text
                   testID={`cumulative-score-${playerIndex}`}
-                  className="text-base font-semibold text-neutral-900"
+                  className="text-base font-semibold text-primary-900"
                 >
                   {score}
                 </Text>

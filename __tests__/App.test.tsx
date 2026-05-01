@@ -6,8 +6,9 @@ import App from '../App';
 describe('App', () => {
   it('affiche l’écran de configuration par défaut', () => {
     render(<App />);
+    expect(screen.getByTestId('game-config-scroll')).toBeOnTheScreen();
     expect(screen.getByText('Nombre de joueurs')).toBeOnTheScreen();
-    expect(screen.getByText('Joueurs')).toBeOnTheScreen();
+    expect(screen.getByText('Démarrer la partie')).toBeOnTheScreen();
   });
 
   it('applique les utilitaires NativeWind (classes Tailwind sur les composants)', () => {
@@ -17,5 +18,6 @@ describe('App', () => {
     expect(root.props.className).toContain('bg-white');
     const section = screen.getByText('Nombre de joueurs');
     expect(section.props.className).toContain('font-medium');
+    expect(section.props.className).toContain('text-primary-800');
   });
 });

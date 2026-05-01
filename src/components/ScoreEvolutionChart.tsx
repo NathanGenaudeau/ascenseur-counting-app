@@ -236,7 +236,7 @@ export function ScoreEvolutionChart({
     <View testID="score-evolution-chart-block" className="mb-6">
       {compact ? null : (
         <>
-          <Text className="mb-2 text-sm font-medium text-neutral-700">
+          <Text className="mb-2 text-sm font-medium text-primary-800">
             Évolution des scores (cumul)
           </Text>
         </>
@@ -253,14 +253,14 @@ export function ScoreEvolutionChart({
               style={{ backgroundColor: getPlayerChartColor(i) }}
               className="h-3 w-3 rounded-full"
             />
-            <Text className="text-base font-medium text-neutral-800">{name}</Text>
+            <Text className="text-base font-medium text-primary-800">{name}</Text>
           </View>
         ))}
       </View>
 
       {!hasRound ? (
         compact ? null : (
-          <Text testID="score-chart-placeholder" className="text-sm text-neutral-500">
+          <Text testID="score-chart-placeholder" className="text-sm text-primary-600">
             Terminez une manche pour afficher la courbe d’évolution.
           </Text>
         )
@@ -416,26 +416,26 @@ export function ScoreEvolutionChart({
           {touchRoundIndex !== null ? (
             <View
               testID="score-chart-touch-tooltip"
-              className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2"
+              className="mt-3 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2"
             >
               <View className="mb-2 flex-row items-start justify-between gap-2">
                 <View className="min-w-0 flex-1 pr-2">
                   {compact ? (
-                    <Text className="text-xs font-medium text-neutral-600">
+                    <Text className="text-xs font-medium text-primary-600">
                       {touchRoundIndex === 0
                         ? 'Départ (avant la manche 1)'
                         : `Après la manche ${touchRoundIndex}`}
                     </Text>
                   ) : (
                     <>
-                      <Text className="text-xs font-medium text-neutral-600">
+                      <Text className="text-xs font-medium text-primary-600">
                         {touchRoundIndex === 0
                           ? 'Départ (avant la manche 1)'
                           : `Après la manche ${touchRoundIndex}`}
                       </Text>
                       {touchRoundIndex >= 1 &&
                         roundsCompleted[touchRoundIndex - 1]?.cardsPerHand !== undefined ? (
-                        <Text className="mt-0.5 text-xs text-neutral-500">
+                        <Text className="mt-0.5 text-xs text-primary-600">
                           {roundsCompleted[touchRoundIndex - 1]!.cardsPerHand} carte
                           {(roundsCompleted[touchRoundIndex - 1]!.cardsPerHand ?? 0) > 1 ? 's' : ''} en
                           main
@@ -451,7 +451,7 @@ export function ScoreEvolutionChart({
                   hitSlop={8}
                   className="shrink-0 py-0.5"
                 >
-                  <Text className="text-sm font-semibold text-neutral-700">Fermer</Text>
+                  <Text className="text-sm font-semibold text-secondary-700">Fermer</Text>
                 </Pressable>
               </View>
               {playerNames.map((name, i) => {
@@ -468,7 +468,7 @@ export function ScoreEvolutionChart({
                         style={{ backgroundColor: getPlayerChartColor(i) }}
                         className="h-2.5 w-2.5 rounded-full"
                       />
-                      <Text className="text-sm text-neutral-800">{name}</Text>
+                      <Text className="text-sm text-primary-800">{name}</Text>
                     </View>
                     <Text
                       className="text-sm font-semibold tabular-nums"

@@ -84,19 +84,19 @@ export function HistoryScreen() {
               onPress={() => setSelected(null)}
               className="mb-4 py-2"
             >
-              <Text className="text-base font-medium text-neutral-800">← Retour</Text>
+              <Text className="text-base font-medium text-secondary-800">← Retour</Text>
             </Pressable>
-            <Text className="mb-1 text-xl font-semibold text-neutral-900">Détail de la partie</Text>
-            <Text testID="history-detail-date" className="mb-1 text-sm text-neutral-600">
+            <Text className="mb-1 text-xl font-semibold text-primary-900">Détail de la partie</Text>
+            <Text testID="history-detail-date" className="mb-1 text-sm text-secondary-700">
               {formatEndedAt(selected.endedAt)}
             </Text>
-            <Text className="mb-4 text-sm text-neutral-700">
+            <Text className="mb-4 text-sm text-secondary-800">
               {selected.roundsCompleted.length} manche{selected.roundsCompleted.length > 1 ? 's' : ''}
               {winnerLabel ? ` · Gagnant : ${winnerLabel}` : ''}
             </Text>
 
-            <Text className="mb-2 text-sm font-medium text-neutral-700">Classement final</Text>
-            <View className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+            <Text className="mb-2 text-sm font-medium text-primary-800">Classement final</Text>
+            <View className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-3">
               {ranking.map((row, i) => (
                 <View
                   key={`${row.playerIndex}-${i}`}
@@ -104,10 +104,10 @@ export function HistoryScreen() {
                   className="mb-2 flex-row items-center justify-between last:mb-0"
                 >
                   <View className="flex-row items-center gap-2">
-                    <Text className="w-8 text-base font-semibold text-neutral-600">{row.rank}.</Text>
-                    <Text className="text-base text-neutral-900">{row.displayName}</Text>
+                    <Text className="w-8 text-base font-semibold text-primary-600">{row.rank}.</Text>
+                    <Text className="text-base text-primary-900">{row.displayName}</Text>
                   </View>
-                  <Text className="text-base font-semibold text-neutral-900">{row.totalScore}</Text>
+                  <Text className="text-base font-semibold text-primary-900">{row.totalScore}</Text>
                 </View>
               ))}
             </View>
@@ -137,9 +137,8 @@ export function HistoryScreen() {
 
   return (
     <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <View className="border-b border-neutral-200 px-4 pb-3 pt-2">
-        <Text className="text-xl font-semibold text-neutral-900">Historique</Text>
-        <Text className="mt-1 text-sm text-neutral-600">Parties terminées enregistrées sur cet appareil.</Text>
+      <View className="border-b border-primary-200 px-4 pb-3 pt-2">
+        <Text className="text-xl font-semibold text-primary-900">Historique</Text>
       </View>
       <FlatList
         testID="history-list"
@@ -147,22 +146,22 @@ export function HistoryScreen() {
         keyExtractor={(g) => g.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, paddingTop: 12 }}
         ListEmptyComponent={
-          <Text testID="history-empty" className="text-center text-neutral-600">
+          <Text testID="history-empty" className="text-center text-secondary-700">
             Aucune partie enregistrée pour le moment. Terminez une partie depuis l’onglet Partie.
           </Text>
         }
         renderItem={({ item }) => {
           const n = item.roundsCompleted.length;
           return (
-            <View className="mb-3 flex-row overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+            <View className="mb-3 flex-row overflow-hidden rounded-xl border border-primary-200 bg-primary-50">
               <Pressable
                 testID={`history-item-${item.id}`}
                 accessibilityRole="button"
                 onPress={() => setSelected(item)}
-                className="min-w-0 flex-1 p-4 active:bg-neutral-100"
+                className="min-w-0 flex-1 p-4 active:bg-primary-100"
               >
-                <Text className="text-base font-medium text-neutral-900">{formatEndedAt(item.endedAt)}</Text>
-                <Text className="mt-1 text-sm text-neutral-700" numberOfLines={2}>
+                <Text className="text-base font-medium text-primary-900">{formatEndedAt(item.endedAt)}</Text>
+                <Text className="mt-1 text-sm text-secondary-800" numberOfLines={2}>
                   {item.playerNames.join(', ')}
                 </Text>
                 <Text className="mt-2 text-xs text-neutral-500">
@@ -173,8 +172,8 @@ export function HistoryScreen() {
                 testID={`history-delete-${item.id}`}
                 accessibilityRole="button"
                 accessibilityLabel="Supprimer la partie"
-                onPress={() => requestDeleteGame(item, () => {})}
-                className="justify-center border-l border-neutral-200 px-3 active:bg-red-50"
+                onPress={() => requestDeleteGame(item, () => { })}
+                className="justify-center border-l border-primary-200 px-3 active:bg-red-50"
               >
                 <Text className="text-sm font-medium text-red-600">Supprimer</Text>
               </Pressable>

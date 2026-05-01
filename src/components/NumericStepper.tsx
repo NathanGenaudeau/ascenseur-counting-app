@@ -28,7 +28,7 @@ export function NumericStepper({
 
   const valueToneClass =
     compareWith === undefined
-      ? 'text-neutral-900'
+      ? 'text-primary-900'
       : value === compareWith
         ? 'text-emerald-600'
         : 'text-red-600';
@@ -54,11 +54,11 @@ export function NumericStepper({
         disabled={!canDecrement}
         onPress={handleMinus}
         className={`rounded-lg border px-3 py-1.5 ${
-          canDecrement ? 'border-neutral-300 bg-white active:bg-neutral-100' : 'border-neutral-200 bg-neutral-100'
+          canDecrement ? 'border-primary-300 bg-white active:bg-primary-50' : 'border-primary-200 bg-primary-50'
         }`}
       >
         <Text
-          className={`text-2xl font-semibold leading-tight ${canDecrement ? 'text-neutral-900' : 'text-neutral-400'}`}
+          className={`text-2xl font-semibold leading-tight ${canDecrement ? 'text-primary-900' : 'text-primary-300'}`}
         >
           −
         </Text>
@@ -77,11 +77,11 @@ export function NumericStepper({
         disabled={!canIncrement}
         onPress={handlePlus}
         className={`rounded-lg border px-3 py-1.5 ${
-          canIncrement ? 'border-neutral-300 bg-white active:bg-neutral-100' : 'border-neutral-200 bg-neutral-100'
+          canIncrement ? 'border-primary-300 bg-white active:bg-primary-50' : 'border-primary-200 bg-primary-50'
         }`}
       >
         <Text
-          className={`text-2xl font-semibold leading-tight ${canIncrement ? 'text-neutral-900' : 'text-neutral-400'}`}
+          className={`text-2xl font-semibold leading-tight ${canIncrement ? 'text-primary-900' : 'text-primary-300'}`}
         >
           +
         </Text>

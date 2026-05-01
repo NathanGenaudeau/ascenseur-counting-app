@@ -27,7 +27,7 @@ export function AppNavigator() {
             screenOptions={{
               /** Pas d’en-tête : les titres sont déjà portés par la barre d’onglets en bas. */
               headerShown: false,
-              tabBarActiveTintColor: '#171717',
+              tabBarActiveTintColor: '#1f3d5e',
               tabBarInactiveTintColor: '#737373',
             }}
           >

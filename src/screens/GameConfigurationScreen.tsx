@@ -91,7 +91,7 @@ export function GameConfigurationScreen() {
         >
           <View className="px-4 pb-8 pt-2">
             <View className="mb-6 items-center">
-              <Text className="mb-2 text-center text-sm font-medium text-neutral-700">
+              <Text className="mb-2 text-center text-sm font-medium text-primary-800">
                 Nombre de joueurs
               </Text>
               <View testID="player-count-row" className="flex-row items-center justify-center gap-4">
@@ -100,13 +100,13 @@ export function GameConfigurationScreen() {
                   accessibilityRole="button"
                   disabled={draft.playerCount <= PLAYER_COUNT_MIN}
                   onPress={() => setPlayerCount(draft.playerCount - 1)}
-                  className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
+                  className="rounded-lg border border-primary-300 bg-white px-4 py-2 active:bg-primary-50"
                 >
-                  <Text className="text-lg">−</Text>
+                  <Text className="text-lg text-primary-900">−</Text>
                 </Pressable>
                 <Text
                   testID="player-count-value"
-                  className="min-w-[32px] text-center text-xl font-semibold"
+                  className="min-w-[32px] text-center text-xl font-semibold text-primary-900"
                 >
                   {draft.playerCount}
                 </Text>
@@ -115,27 +115,27 @@ export function GameConfigurationScreen() {
                   accessibilityRole="button"
                   disabled={draft.playerCount >= PLAYER_COUNT_MAX}
                   onPress={() => setPlayerCount(draft.playerCount + 1)}
-                  className="rounded-lg border border-neutral-300 px-4 py-2 active:bg-neutral-100"
+                  className="rounded-lg border border-primary-300 bg-white px-4 py-2 active:bg-primary-50"
                 >
-                  <Text className="text-lg">+</Text>
+                  <Text className="text-lg text-primary-900">+</Text>
                 </Pressable>
               </View>
             </View>
 
-            <Text className="mb-2 text-sm font-medium text-neutral-700">Notes (optionnel)</Text>
+            <Text className="mb-2 text-sm font-medium text-primary-800">Notes (optionnel)</Text>
             <TextInput
               testID="optional-notes-input"
               value={draft.settings.notes ?? ''}
               onChangeText={setNotes}
               placeholder="Remarques sur la partie…"
               multiline
-              className="mb-6 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-base text-neutral-900"
+              className="mb-6 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-base text-primary-900"
             />
 
             {draft.slots.map((slot, index) => (
               <View key={slot.slotKey} testID={`player-slot-${index}`} className="mb-4">
                 <View className="mb-1 flex-row items-center justify-between">
-                  <Text className="text-xs text-neutral-500">Joueur {index + 1}</Text>
+                  <Text className="text-xs text-primary-600">Joueur {index + 1}</Text>
                   <View className="flex-row items-center gap-1">
                     <Pressable
                       testID={`player-move-up-${index}`}
@@ -143,9 +143,9 @@ export function GameConfigurationScreen() {
                       accessibilityLabel="Monter le joueur"
                       disabled={index === 0}
                       onPress={() => moveSlot(index, -1)}
-                      className={`rounded-md p-2 ${index === 0 ? 'opacity-30' : 'active:bg-neutral-100'}`}
+                      className={`rounded-md p-2 ${index === 0 ? 'opacity-30' : 'active:bg-primary-50'}`}
                     >
-                      <ChevronUp size={20} color="#404040" />
+                      <ChevronUp size={20} color="#1f3d5e" />
                     </Pressable>
                     <Pressable
                       testID={`player-move-down-${index}`}
@@ -153,9 +153,9 @@ export function GameConfigurationScreen() {
                       accessibilityLabel="Descendre le joueur"
                       disabled={index >= draft.slots.length - 1}
                       onPress={() => moveSlot(index, 1)}
-                      className={`rounded-md p-2 ${index >= draft.slots.length - 1 ? 'opacity-30' : 'active:bg-neutral-100'}`}
+                      className={`rounded-md p-2 ${index >= draft.slots.length - 1 ? 'opacity-30' : 'active:bg-primary-50'}`}
                     >
-                      <ChevronDown size={20} color="#404040" />
+                      <ChevronDown size={20} color="#1f3d5e" />
                     </Pressable>
                   </View>
                 </View>
@@ -166,15 +166,15 @@ export function GameConfigurationScreen() {
                     onChangeText={(t) => setSlotName(index, t)}
                     placeholder="Nom affiché"
                     autoCapitalize="words"
-                    className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base text-neutral-900"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-primary-200 bg-white px-3 py-2 text-base text-primary-900"
                   />
                   <Pressable
                     testID={`pick-player-button-${index}`}
                     accessibilityRole="button"
                     onPress={() => openPicker(index)}
-                    className="shrink-0 justify-center rounded-md bg-neutral-100 px-2 py-2"
+                    className="shrink-0 justify-center rounded-lg border border-secondary-300 bg-secondary-50 px-2 py-2 active:bg-secondary-100"
                   >
-                    <Text className="text-center text-xs text-neutral-800">
+                    <Text className="text-center text-xs font-medium text-secondary-900">
                       Choisir un joueur existant
                     </Text>
                   </Pressable>
@@ -206,9 +206,9 @@ export function GameConfigurationScreen() {
                 clearStartError();
                 void loadLastSavedConfiguration();
               }}
-              className="mb-4 rounded-lg border border-neutral-300 py-3"
+              className="mb-4 rounded-lg border border-secondary-300 bg-secondary-50 py-3 active:bg-secondary-100"
             >
-              <Text className="text-center text-neutral-800">
+              <Text className="text-center font-medium text-secondary-900">
                 Reprendre la dernière configuration
               </Text>
             </Pressable>
@@ -222,7 +222,7 @@ export function GameConfigurationScreen() {
                 clearStartError();
                 void startGame();
               }}
-              className={`rounded-xl py-4 ${validation.valid && !isStartingGame ? 'bg-neutral-900' : 'bg-neutral-300'}`}
+              className={`rounded-xl py-4 ${validation.valid && !isStartingGame ? 'bg-primary-800' : 'bg-neutral-300'}`}
             >
               <Text
                 className={`text-center text-base font-semibold ${validation.valid && !isStartingGame ? 'text-white' : 'text-neutral-500'}`}
@@ -236,10 +236,10 @@ export function GameConfigurationScreen() {
 
       <Modal visible={modalIndex !== null} animationType="slide" onRequestClose={closePicker}>
         <SafeAreaView className="flex-1 bg-white">
-          <View className="flex-row items-center justify-between border-b border-neutral-200 px-4 py-3">
-            <Text className="text-lg font-semibold">Joueurs enregistrés</Text>
+          <View className="flex-row items-center justify-between border-b border-primary-200 px-4 py-3">
+            <Text className="text-lg font-semibold text-primary-900">Joueurs enregistrés</Text>
             <Pressable testID="close-player-picker" onPress={closePicker}>
-              <Text className="text-base text-blue-600">Fermer</Text>
+              <Text className="text-base font-medium text-secondary-700">Fermer</Text>
             </Pressable>
           </View>
           <FlatList
@@ -247,17 +247,17 @@ export function GameConfigurationScreen() {
             data={pickerPlayers}
             keyExtractor={(item) => item._id}
             ListEmptyComponent={
-              <Text className="px-4 py-8 text-center text-neutral-500">
+              <Text className="px-4 py-8 text-center text-primary-600">
                 Aucun joueur — saisissez un nom manuellement ou vérifiez la connexion à l’API.
               </Text>
             }
             renderItem={({ item }) => (
               <Pressable
                 testID={`existing-player-row-${item._id}`}
-                className="border-b border-neutral-100 px-4 py-4"
+                className="border-b border-primary-100 px-4 py-4 active:bg-primary-50"
                 onPress={() => onPickPlayer(item)}
               >
-                <Text className="text-base text-neutral-900">{item.displayName}</Text>
+                <Text className="text-base text-primary-900">{item.displayName}</Text>
               </Pressable>
             )}
           />
