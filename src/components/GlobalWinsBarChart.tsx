@@ -1,13 +1,20 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text, useWindowDimensions, View } from 'react-native';
 
 import type { WinCountDatum } from '../domain/globalStats';
+import { getPlayerChartColor } from '../utils/playerChartColors';
 
 type Props = {
   data: WinCountDatum[];
 };
 
+/** Mélange une couleur hex avec du violet pour créer un dégradé Arcane. */
+function gradientEnd(hex: string): string {
+  return '#7209b7';
+}
+
 /**
- * Histogramme simple des victoires par joueur (ASC-24).
+ * Histogramme horizontal avec barres en dégradé rose→violet (style Hextech).
  */
 export function GlobalWinsBarChart({ data }: Props) {
   const { width } = useWindowDimensions();
@@ -16,7 +23,7 @@ export function GlobalWinsBarChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <Text testID="global-wins-chart-empty" className="text-sm text-primary-600">
+      <Text testID="global-wins-chart-empty" className="font-sans text-sm text-cosmic-400">
         Pas assez de données pour un graphique.
       </Text>
     );
@@ -26,18 +33,25 @@ export function GlobalWinsBarChart({ data }: Props) {
     <View testID="global-wins-chart" className="gap-3">
       {data.map((row, i) => {
         const pct = (row.wins / maxWins) * 100;
+        const fill = getPlayerChartColor(i);
+        const barWidth = Math.max(8, (pct / 100) * chartWidth);
         return (
           <View key={`${row.displayName}-${i}`} testID={`global-wins-bar-row-${i}`} className="gap-1">
             <View className="flex-row items-center justify-between">
-              <Text className="max-w-[40%] text-sm text-primary-800" numberOfLines={1}>
+              <Text className="max-w-[40%] font-sans text-sm text-cosmic-200" numberOfLines={1}>
                 {row.displayName}
               </Text>
-              <Text className="text-sm font-medium text-primary-900">{row.wins}</Text>
+              <Text className="font-display text-base text-cosmic-50">{row.wins}</Text>
             </View>
-            <View className="h-3 overflow-hidden rounded-full bg-secondary-100" style={{ width: chartWidth }}>
-              <View
-                className="h-3 rounded-full bg-secondary-700"
-                style={{ width: `${pct}%` }}
+            <View
+              className="h-3 overflow-hidden rounded-full bg-cosmic-700"
+              style={{ width: chartWidth }}
+            >
+              <LinearGradient
+                colors={[fill, gradientEnd(fill)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ width: barWidth, height: 12, borderRadius: 9999 }}
               />
             </View>
           </View>

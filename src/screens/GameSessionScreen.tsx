@@ -1,12 +1,12 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { useMemo } from 'react';
-import { Text, Pressable, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMemo, useRef } from 'react';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GameSummaryView } from '../components/GameSummaryView';
 import { NumericStepper } from '../components/NumericStepper';
 import { ScoreEvolutionChart } from '../components/ScoreEvolutionChart';
+import { ScreenShell } from '../components/ScreenShell';
 import { useGameSession } from '../context/GameSessionContext';
 import { cardPhaseForRound, cardsPerHandForRound } from '../domain/cardSequence';
 import { currentBetSuccessStreak } from '../domain/gameOutcome';
@@ -29,13 +29,15 @@ function PlayerNameWithStreakBadge({
   return (
     <View className="mb-2 flex-row items-center gap-1.5">
       {streak >= STREAK_BADGE_MIN ? (
-        <Text
+        <View
           testID={`player-streak-badge-${playerIndex}`}
           accessibilityLabel={`Série de ${streak} paris réussis`}
-          className="shrink-0 text-sm font-semibold text-secondary-700"
+          className="shrink-0 rounded-full border border-star/50 bg-star/15 px-1.5 py-0.5"
         >
-          {streak}🔥
-        </Text>
+                <Text className="font-display text-sm text-star-bright">
+                  {streak}🔥
+                </Text>
+        </View>
       ) : null}
       <Text className={`min-w-0 flex-1 ${nameTextClassName}`} numberOfLines={1}>
         {displayName}
@@ -46,6 +48,8 @@ function PlayerNameWithStreakBadge({
 
 /** Borne haute pour les plis à la manche (saisie par pas de 1). */
 const MAX_TRICKS_PER_STEP = 20;
+
+const playerCardClass = 'min-w-0 rounded-xl border border-hairline border-l-2 border-l-star/50 bg-panel p-3';
 
 export function GameSessionScreen() {
   const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
@@ -75,17 +79,34 @@ export function GameSessionScreen() {
     );
   }, [session, playState]);
 
+  const finalizeFlashOpacity = useRef(new Animated.Value(0)).current;
+
+  const triggerFinalizeImpactFlash = () => {
+    finalizeFlashOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(finalizeFlashOpacity, { toValue: 1, duration: 42, useNativeDriver: true }),
+      Animated.timing(finalizeFlashOpacity, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleFinalizeRound = () => {
+    triggerFinalizeImpactFlash();
+    finalizeRound();
+  };
+
   if (!session || !playState) {
     return (
-      <SafeAreaView
-        testID="screen-game-session"
-        className="flex-1 bg-white"
-        edges={['top', 'left', 'right']}
-      >
+      <ScreenShell testID="screen-game-session">
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-lg font-medium text-primary-900">Partie en cours</Text>
+          <Text className="font-sans-semibold text-xl text-star" style={{ textAlign: 'center', width: '100%' }}>
+            Partie en cours
+          </Text>
         </View>
-      </SafeAreaView>
+      </ScreenShell>
     );
   }
 
@@ -113,11 +134,7 @@ export function GameSessionScreen() {
 
   if (phase === 'finished') {
     return (
-      <SafeAreaView
-        testID="screen-game-session"
-        className="flex-1 bg-white"
-        edges={['top', 'left', 'right']}
-      >
+      <ScreenShell testID="screen-game-session">
         <GameSummaryView
           playerNames={session.players.map((p) => p.displayName)}
           cumulativeScores={cumulativeScores}
@@ -127,25 +144,22 @@ export function GameSessionScreen() {
             navigation.navigate('GameConfiguration');
           }}
         />
-      </SafeAreaView>
+      </ScreenShell>
     );
   }
 
   return (
-    <SafeAreaView
-      testID="screen-game-session"
-      className="flex-1 bg-white"
-      edges={['top', 'left', 'right']}
-    >
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+    <ScreenShell testID="screen-game-session">
+      <View className="flex-1">
+        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <View className="px-4 pb-8 pt-2">
-
           <View
             testID="card-sequence-banner"
             className="mb-4 flex-row items-center justify-between gap-2"
           >
-            <Text className="min-w-0 flex-1 text-lg font-medium text-primary-900">
-              Manche {currentRoundIndex} - {cardsThisRound} carte{cardsThisRound > 1 ? 's' : ''} - {phaseTitle}
+            <Text className="min-w-0 flex-1 font-display text-xl text-star-bright">
+              Manche {currentRoundIndex} - {cardsThisRound} carte{cardsThisRound > 1 ? 's' : ''} -{' '}
+              {phaseTitle}
             </Text>
             {showDescendButton ? (
               <Pressable
@@ -153,9 +167,10 @@ export function GameSessionScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Descendre"
                 onPress={startDescent}
-                className="shrink-0 rounded-md border border-secondary-300 bg-secondary-50 px-2.5 py-1.5 active:bg-secondary-100"
+                className="shrink-0 rounded-lg border border-nova/60 bg-panel-raised px-2.5 py-1.5 active:opacity-90"
+                style={{ transform: [{ skewX: '-2deg' }] }}
               >
-                <Text className="text-xs font-semibold text-secondary-900">Descendre</Text>
+                <Text className="font-display text-sm text-nova">Descendre</Text>
               </Pressable>
             ) : null}
           </View>
@@ -170,12 +185,12 @@ export function GameSessionScreen() {
               const p = session.players[i];
               return (
                 <View key={`row-${rowIdx}`} className="mb-4 flex-row justify-center">
-                  <View className="min-w-0 w-[48%] rounded-lg border border-primary-200 bg-white p-3">
+                  <View className={`min-w-0 w-[48%] ${playerCardClass}`}>
                     <PlayerNameWithStreakBadge
                       playerIndex={i}
                       displayName={p.displayName}
                       streak={playerStreaks[i] ?? 0}
-                      nameTextClassName="text-base font-medium text-primary-900"
+                      nameTextClassName="font-sans-medium text-base text-cosmic-50"
                     />
 
                     {step === 'announce' ? (
@@ -206,12 +221,12 @@ export function GameSessionScreen() {
                   const i = announceOrder[slot]!;
                   const p = session.players[i];
                   return (
-                    <View key={`slot-${i}`} className="min-w-0 flex-1 rounded-lg border border-primary-200 bg-white p-3">
+                    <View key={`slot-${i}`} className={`min-w-0 flex-1 ${playerCardClass}`}>
                       <PlayerNameWithStreakBadge
                         playerIndex={i}
                         displayName={p.displayName}
                         streak={playerStreaks[i] ?? 0}
-                        nameTextClassName="text-base font-medium text-primary-900"
+                        nameTextClassName="font-sans-medium text-base text-cosmic-50"
                       />
 
                       {step === 'announce' ? (
@@ -242,9 +257,10 @@ export function GameSessionScreen() {
               testID="end-game-button"
               accessibilityRole="button"
               onPress={endGame}
-              className="mb-3 rounded-xl border border-secondary-300 bg-secondary-50 py-3 active:bg-secondary-100"
+              className="mb-3 rounded-xl border border-nova/60 bg-panel-raised py-3 active:opacity-90"
+              style={{ transform: [{ skewX: '-2deg' }] }}
             >
-              <Text className="text-center text-base font-semibold text-secondary-900">
+              <Text className="text-center font-display text-lg text-nova">
                 Terminer la partie
               </Text>
             </Pressable>
@@ -257,10 +273,13 @@ export function GameSessionScreen() {
               accessibilityState={{ disabled: !canGoToResults }}
               disabled={!canGoToResults}
               onPress={goToResultsStep}
-              className={`mb-4 rounded-xl py-4 ${canGoToResults ? 'bg-primary-800' : 'bg-neutral-300'}`}
+              className={`mb-4 rounded-xl py-4 ${canGoToResults ? 'bg-star' : 'bg-cosmic-600'}`}
+              style={{ transform: [{ skewX: '-2deg' }] }}
             >
               <Text
-                className={`text-center text-base font-semibold ${canGoToResults ? 'text-white' : 'text-neutral-500'}`}
+                className={`text-center font-display text-lg ${
+                  canGoToResults ? 'text-cosmic-50' : 'text-cosmic-500'
+                }`}
               >
                 Valider les annonces
               </Text>
@@ -271,9 +290,10 @@ export function GameSessionScreen() {
                 testID="back-to-announce-button"
                 accessibilityRole="button"
                 onPress={backToAnnounceStep}
-                className="mb-3 rounded-xl border border-secondary-300 bg-secondary-50 py-3 active:bg-secondary-100"
+                className="mb-3 rounded-xl border border-nova/60 bg-panel-raised py-3 active:opacity-90"
+                style={{ transform: [{ skewX: '-2deg' }] }}
               >
-                <Text className="text-center text-base font-semibold text-secondary-900">
+                <Text className="text-center font-display text-lg text-nova">
                   Modifier les annonces
                 </Text>
               </Pressable>
@@ -282,11 +302,14 @@ export function GameSessionScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canFinalizeRound }}
                 disabled={!canFinalizeRound}
-                onPress={finalizeRound}
-                className={`mb-4 rounded-xl py-4 ${canFinalizeRound ? 'bg-primary-700' : 'bg-neutral-300'}`}
+                onPress={handleFinalizeRound}
+                className={`mb-4 rounded-xl py-4 ${canFinalizeRound ? 'bg-star-dim' : 'bg-cosmic-600'}`}
+                style={{ transform: [{ skewX: '-2deg' }] }}
               >
                 <Text
-                  className={`text-center text-base font-semibold ${canFinalizeRound ? 'text-white' : 'text-neutral-500'}`}
+                  className={`text-center font-display text-lg ${
+                    canFinalizeRound ? 'text-cosmic-50' : 'text-cosmic-500'
+                  }`}
                 >
                   Finaliser la manche
                 </Text>
@@ -300,17 +323,19 @@ export function GameSessionScreen() {
             playerNames={session.players.map((p) => p.displayName)}
           />
 
-          <View className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-3">
+          <View className="mb-6 rounded-xl border border-hairline bg-panel-inset p-3">
             {scoreRowsSorted.map(({ playerIndex, displayName, score }) => (
               <View
                 key={`cum-${displayName}-${playerIndex}`}
                 testID={`cumulative-score-row-${playerIndex}`}
                 className="mb-2 flex-row justify-between last:mb-0"
               >
-                <Text className="text-base text-primary-800">{displayName}</Text>
+                <Text className="font-sans text-base text-cosmic-200">{displayName}</Text>
                 <Text
                   testID={`cumulative-score-${playerIndex}`}
-                  className="text-base font-semibold text-primary-900"
+                  className={`font-display text-lg ${
+                    score < 0 ? 'text-red-400 line-through' : 'text-cosmic-50'
+                  }`}
                 >
                   {score}
                 </Text>
@@ -318,7 +343,21 @@ export function GameSessionScreen() {
             ))}
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+        <Animated.View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              zIndex: 8,
+              backgroundColor: 'rgba(255, 45, 120, 0.09)',
+              opacity: finalizeFlashOpacity,
+            },
+          ]}
+        />
+      </View>
+    </ScreenShell>
   );
 }

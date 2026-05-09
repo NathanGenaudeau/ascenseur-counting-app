@@ -15,9 +15,9 @@ describe('App', () => {
     render(<App />);
     const root = screen.getByTestId('app-root');
     expect(root.props.className).toContain('flex-1');
-    expect(root.props.className).toContain('bg-white');
+    expect(root.props.className).toContain('bg-transparent');
     const section = screen.getByText('Nombre de joueurs');
-    expect(section.props.className).toContain('font-medium');
-    expect(section.props.className).toContain('text-primary-800');
+    expect(section.props.className).toContain('font-sans-medium');
+    expect(section.props.className).toContain('text-cosmic-200');
   });
 });

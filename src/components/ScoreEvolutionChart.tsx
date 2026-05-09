@@ -7,7 +7,17 @@ import {
   buildCumulativeSeriesPerPlayer,
   getYRangeForSeries,
 } from '../domain/scoreSeries';
+import {
+  CHART_AXIS,
+  CHART_CURSOR,
+  CHART_DOT_STROKE,
+  CHART_GRID_MAJOR,
+  CHART_GRID_MINOR,
+  CHART_LABEL,
+  CHART_LABEL_FAINT,
+} from '../theme';
 import { getPlayerChartColor } from '../utils/playerChartColors';
+import { ScribbleSeparator } from './ScribbleSeparator';
 
 const CHART_HEIGHT = 260;
 const PADDING = { left: 46, right: 14, top: 14, bottom: 52 };
@@ -235,11 +245,12 @@ export function ScoreEvolutionChart({
   return (
     <View testID="score-evolution-chart-block" className="mb-6">
       {compact ? null : (
-        <>
-          <Text className="mb-2 text-sm font-medium text-primary-800">
-            Évolution des scores (cumul)
+        <View className="mb-2 flex-row items-center gap-2">
+          <ScribbleSeparator accent="nova" />
+          <Text className="font-sans-medium text-sm text-cosmic-200">
+            Évolution des scores
           </Text>
-        </>
+        </View>
       )}
 
       <View
@@ -253,14 +264,14 @@ export function ScoreEvolutionChart({
               style={{ backgroundColor: getPlayerChartColor(i) }}
               className="h-3 w-3 rounded-full"
             />
-            <Text className="text-base font-medium text-primary-800">{name}</Text>
+            <Text className="font-sans-medium text-base text-cosmic-200">{name}</Text>
           </View>
         ))}
       </View>
 
       {!hasRound ? (
         compact ? null : (
-          <Text testID="score-chart-placeholder" className="text-sm text-primary-600">
+          <Text testID="score-chart-placeholder" className="font-sans text-sm text-cosmic-400">
             Terminez une manche pour afficher la courbe d’évolution.
           </Text>
         )
@@ -283,7 +294,7 @@ export function ScoreEvolutionChart({
                     y1={y}
                     x2={PADDING.left + innerWidth}
                     y2={y}
-                    stroke="#f5f5f5"
+                    stroke={CHART_GRID_MAJOR}
                     strokeWidth={1}
                   />
                 );
@@ -298,7 +309,7 @@ export function ScoreEvolutionChart({
                     y1={PADDING.top}
                     x2={x}
                     y2={PADDING.top + innerHeight}
-                    stroke="#fafafa"
+                    stroke={CHART_GRID_MINOR}
                     strokeWidth={1}
                   />
                 );
@@ -308,7 +319,7 @@ export function ScoreEvolutionChart({
                 y1={PADDING.top + innerHeight}
                 x2={PADDING.left + innerWidth}
                 y2={PADDING.top + innerHeight}
-                stroke="#d4d4d4"
+                stroke={CHART_AXIS}
                 strokeWidth={1}
               />
               <Line
@@ -316,7 +327,7 @@ export function ScoreEvolutionChart({
                 y1={PADDING.top}
                 x2={PADDING.left}
                 y2={PADDING.top + innerHeight}
-                stroke="#d4d4d4"
+                stroke={CHART_AXIS}
                 strokeWidth={1}
               />
               {minY < 0 && maxY > 0 ? (
@@ -325,7 +336,7 @@ export function ScoreEvolutionChart({
                   y1={PADDING.top + mapY(0, minY, maxY, innerHeight)}
                   x2={PADDING.left + innerWidth}
                   y2={PADDING.top + mapY(0, minY, maxY, innerHeight)}
-                  stroke="#d4d4d4"
+                  stroke={CHART_AXIS}
                   strokeDasharray="4 4"
                   strokeWidth={1}
                 />
@@ -338,7 +349,7 @@ export function ScoreEvolutionChart({
                     x={PADDING.left - 6}
                     y={y + 4}
                     fontSize={10}
-                    fill="#737373"
+                    fill={CHART_LABEL}
                     textAnchor="end"
                   >
                     {formatScoreLabel(tick)}
@@ -357,7 +368,7 @@ export function ScoreEvolutionChart({
                       x={x}
                       y={CHART_HEIGHT - 34}
                       fontSize={10}
-                      fill="#737373"
+                      fill={CHART_LABEL}
                       textAnchor="middle"
                     >
                       {String(k)}
@@ -367,7 +378,7 @@ export function ScoreEvolutionChart({
                         x={x}
                         y={CHART_HEIGHT - 18}
                         fontSize={9}
-                        fill="#a3a3a3"
+                        fill={CHART_LABEL_FAINT}
                         textAnchor="middle"
                       >
                         {cards}c
@@ -393,7 +404,7 @@ export function ScoreEvolutionChart({
                       cy={p.y}
                       r={3}
                       fill={color}
-                      stroke="#ffffff"
+                      stroke={CHART_DOT_STROKE}
                       strokeWidth={1.5}
                     />
                   ))}
@@ -405,7 +416,7 @@ export function ScoreEvolutionChart({
                   y1={PADDING.top}
                   x2={cursorX}
                   y2={PADDING.top + innerHeight}
-                  stroke="#737373"
+                  stroke={CHART_CURSOR}
                   strokeWidth={1}
                   strokeDasharray="4 3"
                 />
@@ -416,26 +427,26 @@ export function ScoreEvolutionChart({
           {touchRoundIndex !== null ? (
             <View
               testID="score-chart-touch-tooltip"
-              className="mt-3 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2"
+              className="mt-3 rounded-xl border border-hairline bg-panel-inset px-3 py-2"
             >
               <View className="mb-2 flex-row items-start justify-between gap-2">
                 <View className="min-w-0 flex-1 pr-2">
                   {compact ? (
-                    <Text className="text-xs font-medium text-primary-600">
-                      {touchRoundIndex === 0
-                        ? 'Départ (avant la manche 1)'
-                        : `Après la manche ${touchRoundIndex}`}
-                    </Text>
+                    <Text className="font-sans-medium text-sm text-cosmic-400">
+                        {touchRoundIndex === 0
+                          ? 'Départ (avant la manche 1)'
+                          : `Après la manche ${touchRoundIndex}`}
+                      </Text>
                   ) : (
                     <>
-                      <Text className="text-xs font-medium text-primary-600">
+                      <Text className="font-sans-medium text-sm text-cosmic-400">
                         {touchRoundIndex === 0
                           ? 'Départ (avant la manche 1)'
                           : `Après la manche ${touchRoundIndex}`}
                       </Text>
                       {touchRoundIndex >= 1 &&
                         roundsCompleted[touchRoundIndex - 1]?.cardsPerHand !== undefined ? (
-                        <Text className="mt-0.5 text-xs text-primary-600">
+                        <Text className="mt-0.5 font-sans text-sm text-cosmic-400">
                           {roundsCompleted[touchRoundIndex - 1]!.cardsPerHand} carte
                           {(roundsCompleted[touchRoundIndex - 1]!.cardsPerHand ?? 0) > 1 ? 's' : ''} en
                           main
@@ -451,7 +462,7 @@ export function ScoreEvolutionChart({
                   hitSlop={8}
                   className="shrink-0 py-0.5"
                 >
-                  <Text className="text-sm font-semibold text-secondary-700">Fermer</Text>
+                  <Text className="font-sans-semibold text-sm text-star-bright">Fermer</Text>
                 </Pressable>
               </View>
               {playerNames.map((name, i) => {
@@ -468,10 +479,10 @@ export function ScoreEvolutionChart({
                         style={{ backgroundColor: getPlayerChartColor(i) }}
                         className="h-2.5 w-2.5 rounded-full"
                       />
-                      <Text className="text-sm text-primary-800">{name}</Text>
+                      <Text className="font-sans text-sm text-cosmic-200">{name}</Text>
                     </View>
                     <Text
-                      className="text-sm font-semibold tabular-nums"
+                      className="font-sans-semibold text-sm tabular-nums"
                       style={{ color: getPlayerChartColor(i) }}
                     >
                       {formatScoreLabel(score)}

@@ -1,9 +1,10 @@
 import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScoreEvolutionChart } from '../components/ScoreEvolutionChart';
+import { ScribbleSeparator } from '../components/ScribbleSeparator';
+import { ScreenShell } from '../components/ScreenShell';
 import type { FinishedGameRecord } from '../domain/finishedGameRecord';
 import { buildFinalRanking } from '../domain/gameOutcome';
 import { computeCumulativeScores } from '../domain/scoring';
@@ -75,7 +76,7 @@ export function HistoryScreen() {
     const winnerLabel = ranking.filter((r) => r.rank === 1).map((r) => r.displayName).join(', ');
 
     return (
-      <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
+      <ScreenShell testID="screen-history">
         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
           <View className="px-4 pb-8">
             <Pressable
@@ -84,19 +85,24 @@ export function HistoryScreen() {
               onPress={() => setSelected(null)}
               className="mb-4 py-2"
             >
-              <Text className="text-base font-medium text-secondary-800">← Retour</Text>
+              <Text className="font-sans-medium text-base text-star-bright">← Retour</Text>
             </Pressable>
-            <Text className="mb-1 text-xl font-semibold text-primary-900">Détail de la partie</Text>
-            <Text testID="history-detail-date" className="mb-1 text-sm text-secondary-700">
+            <Text className="mb-1 font-display text-2xl text-star-bright" style={{ width: '100%' }}>
+              Détail de la partie
+            </Text>
+            <Text testID="history-detail-date" className="mb-1 font-sans text-sm text-cosmic-300">
               {formatEndedAt(selected.endedAt)}
             </Text>
-            <Text className="mb-4 text-sm text-secondary-800">
+            <Text className="mb-4 font-sans text-sm text-cosmic-200">
               {selected.roundsCompleted.length} manche{selected.roundsCompleted.length > 1 ? 's' : ''}
               {winnerLabel ? ` · Gagnant : ${winnerLabel}` : ''}
             </Text>
 
-            <Text className="mb-2 text-sm font-medium text-primary-800">Classement final</Text>
-            <View className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-3">
+            <View className="mb-2 flex-row items-center gap-2">
+              <ScribbleSeparator accent="star" />
+              <Text className="font-sans-medium text-sm text-cosmic-200">Classement final</Text>
+            </View>
+            <View className="mb-6 rounded-xl border border-hairline bg-panel-inset p-3">
               {ranking.map((row, i) => (
                 <View
                   key={`${row.playerIndex}-${i}`}
@@ -104,10 +110,10 @@ export function HistoryScreen() {
                   className="mb-2 flex-row items-center justify-between last:mb-0"
                 >
                   <View className="flex-row items-center gap-2">
-                    <Text className="w-8 text-base font-semibold text-primary-600">{row.rank}.</Text>
-                    <Text className="text-base text-primary-900">{row.displayName}</Text>
+                    <Text className="w-8 font-sans-semibold text-base text-star-dim">{row.rank}.</Text>
+                    <Text className="font-sans text-base text-cosmic-50">{row.displayName}</Text>
                   </View>
-                  <Text className="text-base font-semibold text-primary-900">{row.totalScore}</Text>
+                  <Text className="font-sans-semibold text-base text-cosmic-50">{row.totalScore}</Text>
                 </View>
               ))}
             </View>
@@ -125,20 +131,24 @@ export function HistoryScreen() {
                   setSelected(null);
                 })
               }
-              className="mt-8 rounded-xl border border-red-200 bg-red-50 py-3 active:bg-red-100"
+              className="mt-8 rounded-xl border border-red-500/40 bg-red-950/40 py-3 active:opacity-90"
             >
-              <Text className="text-center text-base font-medium text-red-700">Supprimer cette partie</Text>
+              <Text className="text-center font-sans-medium text-base text-red-400">
+                Supprimer cette partie
+              </Text>
             </Pressable>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </ScreenShell>
     );
   }
 
   return (
-    <SafeAreaView testID="screen-history" className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <View className="border-b border-primary-200 px-4 pb-3 pt-2">
-        <Text className="text-xl font-semibold text-primary-900">Historique</Text>
+    <ScreenShell testID="screen-history">
+      <View className="border-b border-hairline px-4 pb-3 pt-2">
+        <Text className="font-display text-2xl text-star">
+          Historique
+        </Text>
       </View>
       <FlatList
         testID="history-list"
@@ -146,25 +156,27 @@ export function HistoryScreen() {
         keyExtractor={(g) => g.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, paddingTop: 12 }}
         ListEmptyComponent={
-          <Text testID="history-empty" className="text-center text-secondary-700">
+          <Text testID="history-empty" className="text-center font-sans text-cosmic-400">
             Aucune partie enregistrée pour le moment. Terminez une partie depuis l’onglet Partie.
           </Text>
         }
         renderItem={({ item }) => {
           const n = item.roundsCompleted.length;
           return (
-            <View className="mb-3 flex-row overflow-hidden rounded-xl border border-primary-200 bg-primary-50">
+            <View className="mb-3 flex-row overflow-hidden rounded-xl border border-hairline bg-panel">
               <Pressable
                 testID={`history-item-${item.id}`}
                 accessibilityRole="button"
                 onPress={() => setSelected(item)}
-                className="min-w-0 flex-1 p-4 active:bg-primary-100"
+                className="min-w-0 flex-1 p-4 active:bg-panel-raised"
               >
-                <Text className="text-base font-medium text-primary-900">{formatEndedAt(item.endedAt)}</Text>
-                <Text className="mt-1 text-sm text-secondary-800" numberOfLines={2}>
+                <Text className="font-sans-medium text-base text-cosmic-50">
+                  {formatEndedAt(item.endedAt)}
+                </Text>
+                <Text className="mt-1 font-sans text-sm text-cosmic-300" numberOfLines={2}>
                   {item.playerNames.join(', ')}
                 </Text>
-                <Text className="mt-2 text-xs text-neutral-500">
+                <Text className="mt-2 font-sans text-sm text-cosmic-500">
                   {n} manche{n > 1 ? 's' : ''}
                 </Text>
               </Pressable>
@@ -173,14 +185,14 @@ export function HistoryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Supprimer la partie"
                 onPress={() => requestDeleteGame(item, () => { })}
-                className="justify-center border-l border-primary-200 px-3 active:bg-red-50"
+                className="justify-center border-l border-hairline px-3 active:bg-red-950/30"
               >
-                <Text className="text-sm font-medium text-red-600">Supprimer</Text>
+                <Text className="font-sans-medium text-sm text-red-400">Supprimer</Text>
               </Pressable>
             </View>
           );
         }}
       />
-    </SafeAreaView>
+    </ScreenShell>
   );
 }

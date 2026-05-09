@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { Cog, History, LineChart, PlayCircle } from 'lucide-react-native';
 
 import { GameConfigurationProvider } from '../context/GameConfigurationContext';
@@ -8,6 +9,7 @@ import { GameConfigurationScreen } from '../screens/GameConfigurationScreen';
 import { GameSessionScreen } from '../screens/GameSessionScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { StatisticsScreen } from '../screens/StatisticsScreen';
+import { ICON_ACCENT_HEX } from '../theme';
 
 export type RootTabParamList = {
   GameConfiguration: undefined;
@@ -21,14 +23,21 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 export function AppNavigator() {
   return (
     <NavigationContainer>
+      <StatusBar style="light" />
       <GameSessionProvider>
         <GameConfigurationProvider>
           <Tab.Navigator
             screenOptions={{
-              /** Pas d’en-tête : les titres sont déjà portés par la barre d’onglets en bas. */
               headerShown: false,
-              tabBarActiveTintColor: '#1f3d5e',
-              tabBarInactiveTintColor: '#737373',
+              tabBarActiveTintColor: ICON_ACCENT_HEX,
+              tabBarInactiveTintColor: '#4a4a62',
+              tabBarStyle: {
+                backgroundColor: '#0a080e',
+                borderTopColor: '#2d1a2b',
+                borderTopWidth: 1,
+                paddingTop: 4,
+              },
+              tabBarLabelStyle: { fontFamily: 'Bangers_400Regular', fontSize: 13 },
             }}
           >
             <Tab.Screen

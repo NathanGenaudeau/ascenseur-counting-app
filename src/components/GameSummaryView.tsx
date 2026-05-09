@@ -1,7 +1,11 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { CompletedRound } from '../domain/gamePlayState';
 import { buildBettingHighlights, buildFinalRanking } from '../domain/gameOutcome';
+
+import { RadialImpactGraphic } from './RadialImpactGraphic';
+import { ScribbleSeparator } from './ScribbleSeparator';
 
 type Props = {
   playerNames: string[];
@@ -17,24 +21,24 @@ const statTileStyles: Record<
   { box: string; headline: string; subline: string }
 > = {
   betBest: {
-    box: 'border-primary-200 bg-primary-50',
-    headline: 'text-primary-800',
-    subline: 'text-primary-900/80',
+    box: 'border-star-dim/40 bg-star-deep/25',
+    headline: 'text-star-bright',
+    subline: 'text-cosmic-200',
   },
   biggestDrop: {
-    box: 'border-rose-200 bg-rose-50',
-    headline: 'text-rose-700',
-    subline: 'text-rose-900/80',
+    box: 'border-red-400/30 bg-red-950/35',
+    headline: 'text-red-300',
+    subline: 'text-red-200/90',
   },
   streakBest: {
-    box: 'border-secondary-200 bg-secondary-50',
-    headline: 'text-secondary-800',
-    subline: 'text-secondary-950/80',
+    box: 'border-nova-muted/40 bg-panel-raised',
+    headline: 'text-nova',
+    subline: 'text-cosmic-200',
   },
   mostZeroBets: {
-    box: 'border-secondary-300 bg-secondary-100',
-    headline: 'text-secondary-900',
-    subline: 'text-secondary-950/80',
+    box: 'border-cosmic-500/40 bg-panel-inset',
+    headline: 'text-cosmic-100',
+    subline: 'text-cosmic-300',
   },
 };
 
@@ -53,11 +57,11 @@ function SummaryStatTile({
   return (
     <View testID={testID} className={`min-h-[120px] flex-1 rounded-xl border p-3 ${s.box}`}>
       <View className="flex-1 items-center justify-center">
-        <Text className={`text-center text-3xl font-bold leading-tight ${s.headline}`}>
+        <Text className={`text-center font-display-bold text-3xl leading-tight ${s.headline}`}>
           {headline}
         </Text>
       </View>
-      <Text className={`text-center text-xs leading-snug ${s.subline}`}>{subline}</Text>
+      <Text className={`text-center font-sans text-sm leading-snug ${s.subline}`}>{subline}</Text>
     </View>
   );
 }
@@ -75,10 +79,26 @@ export function GameSummaryView({
   const streakBest = betting.bestStreak;
   const mostZeroBets = betting.mostZeroBets;
   const showFigures =
-    betBest !== null &&
-    biggestDrop !== null &&
-    streakBest !== null &&
-    mostZeroBets !== null;
+    betBest !== null && biggestDrop !== null && streakBest !== null && mostZeroBets !== null;
+
+  const titleScale = useRef(new Animated.Value(1)).current;
+  const titleBurstOpacity = useRef(new Animated.Value(0)).current;
+  const titleBurstScale = useRef(new Animated.Value(0.65)).current;
+
+  useEffect(() => {
+    titleBurstOpacity.setValue(0.75);
+    titleBurstScale.setValue(0.65);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(titleScale, { toValue: 1.045, duration: 85, useNativeDriver: true }),
+        Animated.spring(titleScale, { toValue: 1, friction: 6.5, tension: 220, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(titleBurstScale, { toValue: 1.12, duration: 110, useNativeDriver: true }),
+        Animated.timing(titleBurstOpacity, { toValue: 0, duration: 340, delay: 20, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
 
   const name = (i: number) => playerNames[i] ?? '?';
 
@@ -89,8 +109,7 @@ export function GameSummaryView({
     return `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}`;
   };
 
-  const namesForIndices = (indices: number[]) =>
-    formatNamesList(indices.map((i) => name(i)));
+  const namesForIndices = (indices: number[]) => formatNamesList(indices.map((i) => name(i)));
 
   const streakSubline = (playerIndices: number[], streak: number) => {
     const ns = namesForIndices(playerIndices);
@@ -134,14 +153,31 @@ export function GameSummaryView({
       keyboardShouldPersistTaps="handled"
     >
       <View className="px-4 pb-8">
-        <Text
-          testID="game-summary-title"
-          className="mb-1 text-2xl font-semibold text-primary-900"
-        >
-          Partie terminée
-        </Text>
-        <Text className="mb-2 text-sm font-medium text-primary-800/90">Classement final</Text>
-        <View className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-3">
+        <View className="relative mb-1 min-h-[44px] justify-center pt-2">
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: '50%',
+              marginLeft: -52,
+              top: -6,
+              opacity: titleBurstOpacity,
+              transform: [{ scale: titleBurstScale }],
+            }}
+          >
+            <RadialImpactGraphic size={104} />
+          </Animated.View>
+          <Animated.View style={{ transform: [{ scale: titleScale }] }}>
+            <Text testID="game-summary-title" className="font-display-bold text-3xl text-star">
+              Partie terminée
+            </Text>
+          </Animated.View>
+        </View>
+        <View className="mb-2 flex-row items-center gap-2">
+          <ScribbleSeparator accent="star" />
+          <Text className="font-sans-medium text-sm text-cosmic-200">Classement final</Text>
+        </View>
+        <View className="mb-6 rounded-xl border border-hairline bg-panel-inset p-3">
           {ranking.map((row, i) => (
             <View
               key={`rank-${row.playerIndex}`}
@@ -149,12 +185,22 @@ export function GameSummaryView({
               className="mb-2 flex-row items-center justify-between last:mb-0"
             >
               <View className="flex-row items-center gap-2">
-                <Text className="w-8 text-base font-semibold text-primary-600">{row.rank}.</Text>
-                <Text className="text-base text-primary-950">{row.displayName}</Text>
+                {row.rank === 1 ? (
+                  <View className="h-7 w-7 items-center justify-center rounded-full bg-star">
+                    <Text className="font-display text-sm text-cosmic-50">★</Text>
+                  </View>
+                ) : (
+                  <Text className="w-7 text-center font-display text-base text-cosmic-500">{row.rank}.</Text>
+                )}
+                <Text className={`font-sans text-base ${row.rank === 1 ? 'font-sans-semibold text-star-bright' : 'text-cosmic-50'}`}>
+                  {row.displayName}
+                </Text>
               </View>
               <Text
                 testID={`summary-ranking-score-${row.playerIndex}`}
-                className="text-base font-semibold text-primary-900"
+                className={`font-display text-lg ${
+                  row.totalScore < 0 ? 'text-red-400 line-through' : row.rank === 1 ? 'text-star-bright' : 'text-cosmic-50'
+                }`}
               >
                 {row.totalScore}
               </Text>
@@ -164,7 +210,10 @@ export function GameSummaryView({
 
         {showFigures ? (
           <>
-            <Text className="mb-2 text-sm font-medium text-primary-800/90">En chiffres</Text>
+            <View className="mb-2 flex-row items-center gap-2">
+              <ScribbleSeparator accent="nova" />
+              <Text className="font-sans-medium text-sm text-cosmic-200">En chiffres</Text>
+            </View>
             <View className="mb-3 flex-row gap-3">
               <SummaryStatTile
                 variant="betBest"
@@ -204,9 +253,10 @@ export function GameSummaryView({
           testID="summary-new-game-button"
           accessibilityRole="button"
           onPress={onNewGame}
-          className="rounded-xl bg-primary-700 py-4 active:bg-primary-800"
+          className="rounded-xl bg-star py-4 active:bg-star-dim"
+          style={{ transform: [{ skewX: '-2deg' }] }}
         >
-          <Text className="text-center text-base font-semibold text-white">
+          <Text className="text-center font-display text-xl text-cosmic-50">
             Nouvelle partie
           </Text>
         </Pressable>

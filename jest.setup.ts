@@ -42,6 +42,17 @@ jest.mock('expo-av', () => ({
   },
 }));
 
+jest.mock('expo-font', () => ({
+  useFonts: jest.fn(() => [true]),
+}));
+
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn(),
+  hideAsync: jest.fn(),
+}));
+
+jest.mock('expo-linear-gradient');
+
 beforeEach(async () => {
   await mockAsyncStorage.clear();
 });
