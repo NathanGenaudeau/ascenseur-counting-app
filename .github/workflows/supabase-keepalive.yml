@@ -15,10 +15,11 @@ jobs:
       - name: Query Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Same key as the app build; SUPABASE_ANON_KEY is accepted as an alternative name.
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::error::SUPABASE_URL and SUPABASE_ANON_KEY secrets must be set"
+            echo "::error::SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_ANON_KEY) secrets must be set"
             exit 1
           fi
           curl --fail-with-body --silent --show-error \
@@ -28,11 +29,15 @@ jobs:
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
 
   # GitHub disables scheduled workflows after 60 days without repository activity.
-  # This re-enables the workflow through the API (no dummy commits).
+  # Re-enabling the workflow through the API resets that timer (no dummy commits,
+  # no third-party action).
   workflow-keepalive:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       actions: write
     steps:
-      - uses: gautamkrishnar/keepalive-workflow@v2
+      - name: Re-enable this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"
