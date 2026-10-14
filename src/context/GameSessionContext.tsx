@@ -8,8 +8,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 
-import type { GameDraftSettings } from '../domain/gameConfigurationDraft';
+import {
+  INITIAL_SYNC_PROGRESS,
+  orderedGamePlayerIds,
+  unsyncedRoundCount,
+  type ActiveGameSession,
+  type RemoteSyncProgress,
+  type StoredActiveGame,
+} from '../domain/activeGameSession';
 import { minRoundIndexToAllowEndGame } from '../domain/cardSequence';
 import {
   allSlotsFilled,
@@ -18,25 +26,20 @@ import {
   isBetweenRounds,
   tricksDraftTotalMatchesCardsDealt,
   type GamePlayState,
-  type PlayAction,
 } from '../domain/gamePlayState';
 import { scoreThresholdSoundsToPlay } from '../domain/scoreThresholdEvents';
 import { computeCumulativeScores } from '../domain/scoring';
+import { clearActiveGame, loadActiveGame, saveActiveGame } from '../services/activeGameStorage';
 import { finishRemoteGame, persistRemoteRound } from '../services/gameSessionSupabase';
-import { playScoreThresholdSounds } from '../services/scoreThresholdSoundPlayer';
+import {
+  playScoreThresholdSounds,
+  preloadScoreThresholdSounds,
+} from '../services/scoreThresholdSoundPlayer';
 
-export type ActiveSessionPlayer = {
-  displayName: string;
-  /** Toujours défini après démarrage via Supabase. */
-  playerId?: string;
-};
+export type { ActiveGameSession, ActiveSessionPlayer } from '../domain/activeGameSession';
 
-export type ActiveGameSession = {
-  players: ActiveSessionPlayer[];
-  settings: GameDraftSettings;
-  /** Partie persistée côté Supabase. */
-  supabaseGameId?: string;
-};
+/** `error` : le dernier envoi a échoué, les données restent en attente sur l’appareil. */
+export type RemoteSyncStatus = 'idle' | 'syncing' | 'error';
 
 type GameSessionContextValue = {
   session: ActiveGameSession | null;
@@ -54,40 +57,161 @@ type GameSessionContextValue = {
   canFinalizeRound: boolean;
   canEndGame: boolean;
   endGame: () => void;
+  syncStatus: RemoteSyncStatus;
+  /** Manches terminées pas encore enregistrées côté Supabase. */
+  unsyncedRounds: number;
+  /** Données de la partie pas encore toutes enregistrées (manches ou clôture). */
+  hasPendingSync: boolean;
+  retrySync: () => void;
 };
 
 const GameSessionContext = createContext<GameSessionContextValue | null>(null);
 
+type Snapshot = {
+  session: ActiveGameSession | null;
+  playState: GamePlayState | null;
+  syncProgress: RemoteSyncProgress;
+};
+
 export function GameSessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<ActiveGameSession | null>(null);
-  const [playState, playDispatch] = useReducer(
-    (s: GamePlayState | null, a: PlayAction) => gamePlayReducer(s, a),
-    null,
-  );
-  const lastSyncedRoundCountRef = useRef(0);
-  /** Évite de rejouer les sons pour la même manche (Strict Mode / re-renders). */
-  const thresholdRoundFingerprintRef = useRef<string | null>(null);
+  const [playState, playDispatch] = useReducer(gamePlayReducer, null);
+  const [syncProgress, setSyncProgress] = useState<RemoteSyncProgress>(INITIAL_SYNC_PROGRESS);
+  const [syncStatus, setSyncStatus] = useState<RemoteSyncStatus>('idle');
+
+  /** Dernier état rendu, lu par les callbacks asynchrones (sync) et par `finalizeRound`. */
+  const latestRef = useRef<Snapshot>({ session, playState, syncProgress });
+  const syncInFlightRef = useRef(false);
+  /** Vrai une fois la partie sauvegardée relue (ou absente) : avant, on n’écrase pas le stockage. */
+  const hydratedRef = useRef(false);
+  /** Une session posée avant la fin de la relecture l’emporte sur la sauvegarde. */
+  const sessionTouchedRef = useRef(false);
+
+  useEffect(() => {
+    latestRef.current = { session, playState, syncProgress };
+  }, [session, playState, syncProgress]);
+
+  const persistLocally = useCallback((snapshot: Snapshot) => {
+    if (snapshot.session && snapshot.playState) {
+      void saveActiveGame({
+        version: 1,
+        session: snapshot.session,
+        playState: snapshot.playState,
+        sync: snapshot.syncProgress,
+      });
+    } else {
+      void clearActiveGame();
+    }
+  }, []);
+
+  const applySession = useCallback((stored: StoredActiveGame | null) => {
+    setSessionState(stored?.session ?? null);
+    setSyncProgress(stored?.sync ?? INITIAL_SYNC_PROGRESS);
+    setSyncStatus('idle');
+    playDispatch(stored ? { type: 'RESTORE', state: stored.playState } : { type: 'CLEAR' });
+    if (stored) preloadScoreThresholdSounds();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await loadActiveGame();
+      if (cancelled) return;
+      hydratedRef.current = true;
+      if (sessionTouchedRef.current) {
+        persistLocally(latestRef.current);
+      } else if (stored) {
+        applySession(stored);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applySession, persistLocally]);
+
+  useEffect(() => {
+    if (hydratedRef.current) persistLocally({ session, playState, syncProgress });
+  }, [session, playState, syncProgress, persistLocally]);
+
+  /**
+   * Envoie dans l’ordre les manches non synchronisées puis la clôture de partie.
+   * Les appels distants sont idempotents : un échec laisse les données en attente et
+   * un nouvel essai (manche suivante, retour au premier plan, bouton) reprend où il s’est arrêté.
+   */
+  const runSync = useCallback(async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+    try {
+      for (;;) {
+        const { session: s, playState: ps, syncProgress: progress } = latestRef.current;
+        const gameId = s?.supabaseGameId;
+        const gamePlayerIds = s ? orderedGamePlayerIds(s) : null;
+        if (!s || !ps || !gameId || !gamePlayerIds) {
+          setSyncStatus('idle');
+          return;
+        }
+
+        let ok: boolean;
+        let next: RemoteSyncProgress;
+        if (progress.syncedRoundCount < ps.roundsCompleted.length) {
+          setSyncStatus('syncing');
+          ok = await persistRemoteRound(gameId, gamePlayerIds, ps.roundsCompleted[progress.syncedRoundCount]);
+          next = { ...progress, syncedRoundCount: progress.syncedRoundCount + 1 };
+        } else if (ps.phase === 'finished' && !progress.finishSynced) {
+          setSyncStatus('syncing');
+          ok = await finishRemoteGame(gameId);
+          next = { ...progress, finishSynced: true };
+        } else {
+          setSyncStatus('idle');
+          return;
+        }
+
+        // Session remplacée ou effacée pendant l’appel : ce résultat ne la concerne plus.
+        if (latestRef.current.session !== s) return;
+        if (!ok) {
+          setSyncStatus('error');
+          return;
+        }
+        latestRef.current = { ...latestRef.current, syncProgress: next };
+        setSyncProgress(next);
+      }
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, []);
+
+  const roundsCompletedCount = playState?.roundsCompleted.length ?? 0;
+  const phase = playState?.phase;
+
+  useEffect(() => {
+    void runSync();
+  }, [session, roundsCompletedCount, phase, runSync]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void runSync();
+    });
+    return () => sub.remove();
+  }, [runSync]);
+
+  const retrySync = useCallback(() => {
+    void runSync();
+  }, [runSync]);
 
   const setSession = useCallback((s: ActiveGameSession | null) => {
+    sessionTouchedRef.current = true;
     setSessionState(s);
+    setSyncProgress(INITIAL_SYNC_PROGRESS);
+    setSyncStatus('idle');
     if (s) {
-      lastSyncedRoundCountRef.current = 0;
-      thresholdRoundFingerprintRef.current = null;
-      playDispatch({
-        type: 'INIT',
-        playerCount: s.players.length,
-      });
+      playDispatch({ type: 'INIT', playerCount: s.players.length });
+      preloadScoreThresholdSounds();
     } else {
       playDispatch({ type: 'CLEAR' });
     }
   }, []);
 
-  const clearSession = useCallback(() => {
-    lastSyncedRoundCountRef.current = 0;
-    thresholdRoundFingerprintRef.current = null;
-    setSessionState(null);
-    playDispatch({ type: 'CLEAR' });
-  }, []);
+  const clearSession = useCallback(() => setSession(null), [setSession]);
 
   const setAnnouncementDraft = useCallback((playerIndex: number, value: number) => {
     playDispatch({ type: 'SET_ANNOUNCEMENT', index: playerIndex, value });
@@ -106,7 +230,20 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const finalizeRound = useCallback(() => {
-    playDispatch({ type: 'FINALIZE_ROUND' });
+    const prev = latestRef.current.playState;
+    const next = gamePlayReducer(prev, { type: 'FINALIZE_ROUND' });
+    if (!prev || !next || next === prev) return;
+    // Un double appui avant le prochain rendu voit déjà la manche finalisée.
+    latestRef.current = { ...latestRef.current, playState: next };
+    playDispatch({ type: 'RESTORE', state: next });
+
+    const n = prev.draft.announcements.length;
+    playScoreThresholdSounds(
+      scoreThresholdSoundsToPlay(
+        computeCumulativeScores(prev.roundsCompleted, n),
+        computeCumulativeScores(next.roundsCompleted, n),
+      ),
+    );
   }, []);
 
   const startDescent = useCallback(() => {
@@ -114,46 +251,8 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const endGame = useCallback(() => {
-    if (!session || !playState) return;
-    if (session.supabaseGameId) {
-      void finishRemoteGame(session.supabaseGameId);
-    }
     playDispatch({ type: 'END_GAME' });
-  }, [session, playState]);
-
-  useEffect(() => {
-    if (!session || !playState) {
-      thresholdRoundFingerprintRef.current = null;
-      return;
-    }
-    const n = session.players.length;
-    const rounds = playState.roundsCompleted;
-    const len = rounds.length;
-    if (len < 1) {
-      thresholdRoundFingerprintRef.current = null;
-      return;
-    }
-    const last = rounds[len - 1];
-    const fingerprint = `${len}-${last.roundIndex}-${JSON.stringify(last.scores)}`;
-    if (thresholdRoundFingerprintRef.current === fingerprint) return;
-    thresholdRoundFingerprintRef.current = fingerprint;
-
-    const currentScores = computeCumulativeScores(rounds, n);
-    const prevScores = computeCumulativeScores(rounds.slice(0, -1), n);
-    const kinds = scoreThresholdSoundsToPlay(prevScores, currentScores);
-    playScoreThresholdSounds(kinds);
-  }, [session, playState]);
-
-  useEffect(() => {
-    if (!session?.supabaseGameId || !playState) return;
-    const n = playState.roundsCompleted.length;
-    if (n === 0 || n <= lastSyncedRoundCountRef.current) return;
-    const last = playState.roundsCompleted[n - 1];
-    lastSyncedRoundCountRef.current = n;
-    const orderedPlayerIds = session.players.map((p) => p.playerId).filter((id): id is string => Boolean(id));
-    if (orderedPlayerIds.length !== session.players.length) return;
-    void persistRemoteRound(session.supabaseGameId, orderedPlayerIds, last);
-  }, [session, playState]);
+  }, []);
 
   const cumulativeScores = useMemo(() => {
     if (!session || !playState) return [];
@@ -191,6 +290,11 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
     return playState.currentRoundIndex >= minR;
   }, [playState]);
 
+  const isRemoteGame = Boolean(session?.supabaseGameId);
+  const unsyncedRounds = isRemoteGame ? unsyncedRoundCount(roundsCompletedCount, syncProgress) : 0;
+  const hasPendingSync =
+    isRemoteGame && (unsyncedRounds > 0 || (phase === 'finished' && !syncProgress.finishSynced));
+
   const value = useMemo(
     () => ({
       session,
@@ -208,6 +312,10 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
       canFinalizeRound,
       canEndGame,
       endGame,
+      syncStatus,
+      unsyncedRounds,
+      hasPendingSync,
+      retrySync,
     }),
     [
       session,
@@ -225,6 +333,10 @@ export function GameSessionProvider({ children }: { children: React.ReactNode })
       canFinalizeRound,
       canEndGame,
       endGame,
+      syncStatus,
+      unsyncedRounds,
+      hasPendingSync,
+      retrySync,
     ],
   );
 

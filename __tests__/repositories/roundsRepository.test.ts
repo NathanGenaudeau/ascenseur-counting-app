@@ -1,11 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '../../src/data/database.types';
-import {
-  createRound,
-  getRoundResults,
-  upsertRoundResults,
-} from '../../src/data/repositories/roundsRepository';
+import { saveRoundWithResults } from '../../src/data/repositories/roundsRepository';
 import { getTypedSupabaseClient, resetSupabaseClientForTests } from '../../src/data/supabaseClient';
 
 jest.mock('../../src/data/supabaseClient', () => ({
@@ -19,79 +15,37 @@ describe('roundsRepository (ASC-50 / ASC-51)', () => {
     jest.mocked(getTypedSupabaseClient).mockReset();
   });
 
-  it('createRound mappe rounds (round_number)', async () => {
-    const row = {
-      id: 'r1',
-      game_id: 'g1',
-      round_number: 1,
-      created_at: '2026-01-01T00:00:00.000Z',
-    };
-    const single = jest.fn(() => Promise.resolve({ data: row, error: null }));
-    const select = jest.fn(() => ({ single }));
-    const insert = jest.fn(() => ({ select }));
-    const from = jest.fn(() => ({ insert }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
-
-    const round = await createRound('g1', 1);
-
-    expect(insert).toHaveBeenCalledWith({ game_id: 'g1', round_number: 1 });
-    expect(round?._id).toBe('r1');
-    expect(round?.roundIndex).toBe(1);
+  it('saveRoundWithResults retourne false sans client', async () => {
+    jest.mocked(getTypedSupabaseClient).mockReturnValue(null);
+    await expect(saveRoundWithResults('g1', 1, [])).resolves.toBe(false);
   });
 
-  it('upsertRoundResults envoie le score issu de computeRoundScoreFromBid', async () => {
-    const upsert = jest.fn(() => Promise.resolve({ error: null }));
-    const from = jest.fn(() => ({ upsert }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
+  it('saveRoundWithResults appelle la RPC save_round avec le score de computeRoundScore', async () => {
+    const rpc = jest.fn(() => Promise.resolve({ data: 'r1', error: null }));
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ rpc } as unknown as SupabaseClient<Database>);
 
-    const ok = await upsertRoundResults('r1', [{ gamePlayerId: 'gp1', bid: 3, tricksWon: 2 }]);
+    const ok = await saveRoundWithResults('g1', 3, [
+      { gamePlayerId: 'gp1', bid: 3, tricksWon: 2 },
+      { gamePlayerId: 'gp2', bid: 1, tricksWon: 1 },
+    ]);
 
     expect(ok).toBe(true);
-    expect(upsert).toHaveBeenCalledWith(
-      [
-        {
-          round_id: 'r1',
-          game_player_id: 'gp1',
-          bid: 3,
-          tricks_won: 2,
-          score: -1,
-        },
+    expect(rpc).toHaveBeenCalledWith('save_round', {
+      p_game_id: 'g1',
+      p_round_number: 3,
+      p_results: [
+        { game_player_id: 'gp1', bid: 3, tricks_won: 2, score: -1 },
+        { game_player_id: 'gp2', bid: 1, tricks_won: 1, score: 1 },
       ],
-      { onConflict: 'round_id,game_player_id' },
-    );
+    });
   });
 
-  it('upsertRoundResults score 3/3 = 3', async () => {
-    const upsert = jest.fn(() => Promise.resolve({ error: null }));
-    const from = jest.fn(() => ({ upsert }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
+  it('saveRoundWithResults retourne false si la RPC échoue', async () => {
+    const rpc = jest.fn(() => Promise.resolve({ data: null, error: { message: 'offline' } }));
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ rpc } as unknown as SupabaseClient<Database>);
 
-    await upsertRoundResults('r1', [{ gamePlayerId: 'gp1', bid: 3, tricksWon: 3 }]);
-
-    const firstCall = upsert.mock.calls[0] as unknown as [Array<{ score: number }>];
-    expect(firstCall[0][0].score).toBe(3);
-  });
-
-  it('getRoundResults retourne les lignes', async () => {
-    const rows = [
-      {
-        id: 'x',
-        round_id: 'r1',
-        game_player_id: 'gp1',
-        bid: 1,
-        tricks_won: 1,
-        score: 1,
-        created_at: '2026-01-01T00:00:00.000Z',
-        updated_at: '2026-01-01T00:00:00.000Z',
-      },
-    ];
-    const eq = jest.fn(() => Promise.resolve({ data: rows, error: null }));
-    const select = jest.fn(() => ({ eq }));
-    const from = jest.fn(() => ({ select }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
-
-    const out = await getRoundResults('r1');
-    expect(out).toHaveLength(1);
-    expect(out[0].bid).toBe(1);
+    await expect(
+      saveRoundWithResults('g1', 1, [{ gamePlayerId: 'gp1', bid: 0, tricksWon: 0 }]),
+    ).resolves.toBe(false);
   });
 });

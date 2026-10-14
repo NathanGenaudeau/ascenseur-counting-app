@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { CompletedRound } from '../domain/gamePlayState';
@@ -81,9 +81,9 @@ export function GameSummaryView({
   const showFigures =
     betBest !== null && biggestDrop !== null && streakBest !== null && mostZeroBets !== null;
 
-  const titleScale = useRef(new Animated.Value(1)).current;
-  const titleBurstOpacity = useRef(new Animated.Value(0)).current;
-  const titleBurstScale = useRef(new Animated.Value(0.65)).current;
+  const [titleScale] = useState(() => new Animated.Value(1));
+  const [titleBurstOpacity] = useState(() => new Animated.Value(0));
+  const [titleBurstScale] = useState(() => new Animated.Value(0.65));
 
   useEffect(() => {
     titleBurstOpacity.setValue(0.75);
@@ -98,7 +98,7 @@ export function GameSummaryView({
         Animated.timing(titleBurstOpacity, { toValue: 0, duration: 340, delay: 20, useNativeDriver: true }),
       ]),
     ]).start();
-  }, []);
+  }, [titleBurstOpacity, titleBurstScale, titleScale]);
 
   const name = (i: number) => playerNames[i] ?? '?';
 
@@ -196,9 +196,10 @@ export function GameSummaryView({
                   {row.displayName}
                 </Text>
               </View>
+              {/* Largeur fixe + centré : Bangers penche à droite et iOS coupe ce qui dépasse de la boîte du texte. */}
               <Text
                 testID={`summary-ranking-score-${row.playerIndex}`}
-                className={`font-display text-lg ${
+                className={`w-14 text-center font-display text-lg ${
                   row.totalScore < 0 ? 'text-red-400 line-through' : row.rank === 1 ? 'text-star-bright' : 'text-cosmic-50'
                 }`}
               >

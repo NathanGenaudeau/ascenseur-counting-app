@@ -13,13 +13,6 @@ export function getAppEnv(): AppEnv {
 }
 
 /**
- * URL publique de l’API (sans chemin final). Non secret.
- */
-export function getApiBaseUrl(): string {
-  return process.env.EXPO_PUBLIC_API_URL ?? '';
-}
-
-/**
  * URL du projet Supabase (`https://xxx.supabase.co`). Non secret.
  */
 export function getSupabaseUrl(): string {

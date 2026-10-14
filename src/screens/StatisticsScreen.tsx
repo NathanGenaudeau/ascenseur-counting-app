@@ -1,18 +1,20 @@
 import { useIsFocused } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { GlobalWinsBarChart } from '../components/GlobalWinsBarChart';
+import { PlayerStatsTable } from '../components/PlayerStatsTable';
 import { ScribbleSeparator } from '../components/ScribbleSeparator';
 import { ScreenShell } from '../components/ScreenShell';
-import { aggregatePlayerStats, buildWinCountData, type PlayerGlobalStats } from '../domain/globalStats';
+import { StatPodium } from '../components/StatPodium';
+import {
+  aggregatePlayerStats,
+  buildLeaderboards,
+  formatLeaderboardValue,
+  MIN_GAMES_FOR_STATS,
+  playersEligibleForStats,
+  type PlayerGlobalStats,
+} from '../domain/globalStats';
 import { loadCompletedGames } from '../services/completedGamesStorage';
-
-function formatAvg(total: number, games: number): string {
-  if (games < 1) return '—';
-  const v = total / games;
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
-}
 
 export function StatisticsScreen() {
   const [stats, setStats] = useState<PlayerGlobalStats[]>([]);
@@ -30,14 +32,30 @@ export function StatisticsScreen() {
     };
   }, [isFocused]);
 
-  const winsData = buildWinCountData(stats);
+  const eligible = useMemo(() => playersEligibleForStats(stats), [stats]);
+  const leaderboards = useMemo(
+    () => (eligible.length > 0 ? buildLeaderboards(eligible) : []),
+    [eligible],
+  );
+  const tableRows = useMemo(
+    () =>
+      [...stats].sort(
+        (a, b) =>
+          b.gamesWon - a.gamesWon ||
+          b.totalScore - a.totalScore ||
+          a.displayName.localeCompare(b.displayName),
+      ),
+    [stats],
+  );
 
   return (
     <ScreenShell testID="screen-statistics">
-      <ScrollView className="flex-1 px-4 pb-8" keyboardShouldPersistTaps="handled">
-        <Text className="mb-1 font-display text-2xl text-star">
-          Statistiques
-        </Text>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="mb-3 font-display text-2xl text-star">Statistiques</Text>
 
         {stats.length === 0 ? (
           <Text testID="statistics-empty" className="font-sans text-cosmic-400">
@@ -45,33 +63,31 @@ export function StatisticsScreen() {
           </Text>
         ) : (
           <>
-            <View className="mb-2 flex-row items-center gap-2">
-              <ScribbleSeparator accent="star" />
-              <Text className="font-sans-medium text-sm text-cosmic-200">Synthèse par joueur</Text>
-            </View>
-            <View className="mb-6 rounded-xl border border-hairline bg-panel-inset p-3">
-              {stats.map((s, i) => (
-                <View
-                  key={s.key}
-                  testID={`statistics-player-row-${i}`}
-                  className="mb-4 border-b border-hairline pb-4 last:mb-0 last:border-b-0 last:pb-0"
-                >
-                  <Text className="font-sans-semibold text-base text-cosmic-50">{s.displayName}</Text>
-                  <Text className="mt-1 font-sans text-sm text-cosmic-300">
-                    Parties : {s.gamesPlayed} · Victoires : {s.gamesWon} · Score total : {s.totalScore}{' '}
-                    · Moyenne / partie : {formatAvg(s.totalScore, s.gamesPlayed)}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <Text className="mb-3 font-sans text-xs text-cosmic-400">
+              Classements réservés aux joueurs ayant au moins {MIN_GAMES_FOR_STATS} parties terminées.
+            </Text>
+            {eligible.length === 0 ? (
+              <Text testID="statistics-not-enough-games" className="mb-5 font-sans text-cosmic-400">
+                Aucun joueur n’a encore {MIN_GAMES_FOR_STATS} parties terminées : les podiums apparaîtront dès
+                qu’un joueur les aura atteintes.
+              </Text>
+            ) : null}
+            {leaderboards.map((board) => (
+              <StatPodium
+                key={board.id}
+                testID={`podium-${board.id}`}
+                title={board.title}
+                description={board.description}
+                podium={board.podium}
+                formatValue={(v) => formatLeaderboardValue(board.id, v)}
+              />
+            ))}
 
-            <View className="mb-2 flex-row items-center gap-2">
+            <View className="mb-2 mt-1 flex-row items-center gap-2">
               <ScribbleSeparator accent="nova" />
-              <Text className="font-sans-medium text-sm text-cosmic-200">Victoires par joueur</Text>
+              <Text className="font-sans-medium text-sm text-cosmic-200">Stats par joueur</Text>
             </View>
-            <View className="rounded-xl border border-hairline bg-panel p-3">
-              <GlobalWinsBarChart data={winsData} />
-            </View>
+            <PlayerStatsTable stats={tableRows} />
           </>
         )}
       </ScrollView>

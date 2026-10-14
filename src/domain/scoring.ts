@@ -1,17 +1,12 @@
 /**
  * Moteur de score de manche (ASC-11) — déterministe et réutilisable.
- * Règle ASC-51 (bid / tricks_won) : même formule — ne pas dupliquer ailleurs pour la persistance.
+ * Règle ASC-51 (bid / tricks_won) : seule source du score, y compris pour la persistance.
  */
 export function computeRoundScore(announced: number, tricksWon: number): number {
   if (announced === tricksWon) {
     return announced;
   }
   return -Math.abs(announced - tricksWon);
-}
-
-/** Point d’entrée nommé pour la persistance `round_results` (bid, tricks_won). */
-export function computeRoundScoreFromBid(bid: number, tricksWon: number): number {
-  return computeRoundScore(bid, tricksWon);
 }
 
 export function computeRoundScoresForPlayers(

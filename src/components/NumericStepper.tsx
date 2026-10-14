@@ -1,7 +1,69 @@
-import React, { useRef } from 'react';
+import { useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { RadialImpactGraphic } from './RadialImpactGraphic';
+
+/** Couleur des boutons ± à l'appui : série réussie (feu) ou ratée (glace). */
+export type StepperTone = 'default' | 'fire' | 'ice';
+
+const PRESSED_TONE: Record<Exclude<StepperTone, 'default'>, { bg: string; border: string; text: string }> = {
+  fire: { bg: 'rgba(255, 106, 26, 0.32)', border: '#ff6a1a', text: '#ff4d2d' },
+  ice: { bg: 'rgba(127, 220, 255, 0.28)', border: '#ffffff', text: '#bdf4ff' },
+};
+
+function StepButton({
+  symbol,
+  accessibilityLabel,
+  testID,
+  enabled,
+  tone,
+  onPress,
+}: {
+  symbol: string;
+  accessibilityLabel: string;
+  testID: string;
+  enabled: boolean;
+  tone: StepperTone;
+  onPress: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const pressedTone = enabled && pressed && tone !== 'default' ? PRESSED_TONE[tone] : null;
+  const defaultActive = tone === 'default' ? 'active:bg-star/20 active:border-star/50' : '';
+
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      disabled={!enabled}
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      className={`rounded-lg border px-3 py-1.5 ${
+        enabled ? `border-hairline bg-panel-raised ${defaultActive}` : 'border-hairline/30 bg-panel-inset'
+      }`}
+      style={
+        pressedTone
+          ? {
+              backgroundColor: pressedTone.bg,
+              borderColor: pressedTone.border,
+              shadowColor: pressedTone.border,
+              shadowOpacity: 0.7,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 0 },
+            }
+          : undefined
+      }
+    >
+      <Text
+        className={`text-2xl font-bold leading-tight ${enabled ? 'text-cosmic-100' : 'text-cosmic-600'}`}
+        style={pressedTone ? { color: pressedTone.text } : undefined}
+      >
+        {symbol}
+      </Text>
+    </Pressable>
+  );
+}
 
 export type NumericStepperProps = {
   value: number;
@@ -12,6 +74,8 @@ export type NumericStepperProps = {
   compareWith?: number;
   /** Préfixe des testID : `{testID}-minus`, `{testID}-value`, `{testID}-plus`. */
   testID?: string;
+  /** Couleur des boutons ± à l'appui (feu / glace pendant une série). */
+  tone?: StepperTone;
 };
 
 /**
@@ -24,12 +88,13 @@ export function NumericStepper({
   max,
   compareWith,
   testID = 'numeric-stepper',
+  tone = 'default',
 }: NumericStepperProps) {
   const canDecrement = value > min;
   const canIncrement = value < max;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const burstOpacity = useRef(new Animated.Value(0)).current;
-  const burstScale = useRef(new Animated.Value(0.72)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const [burstOpacity] = useState(() => new Animated.Value(0));
+  const [burstScale] = useState(() => new Animated.Value(0.72));
 
   const bounce = () => {
     burstOpacity.setValue(0);
@@ -74,26 +139,14 @@ export function NumericStepper({
 
   return (
     <View className="flex-row items-center justify-center gap-3">
-      <Pressable
-        testID={`${testID}-minus`}
-        accessibilityRole="button"
+      <StepButton
+        symbol="−"
         accessibilityLabel="Diminuer"
-        disabled={!canDecrement}
+        testID={`${testID}-minus`}
+        enabled={canDecrement}
+        tone={tone}
         onPress={handleMinus}
-        className={`rounded-lg border px-3 py-1.5 ${
-          canDecrement
-            ? 'border-hairline bg-panel-raised active:bg-star/20 active:border-star/50'
-            : 'border-hairline/30 bg-panel-inset'
-        }`}
-      >
-        <Text
-          className={`text-2xl font-bold leading-tight ${
-            canDecrement ? 'text-cosmic-100' : 'text-cosmic-600'
-          }`}
-        >
-          −
-        </Text>
-      </Pressable>
+      />
 
       <View className="relative h-[52px] w-[76px] items-center justify-center">
         <Animated.View
@@ -117,26 +170,14 @@ export function NumericStepper({
         </Animated.View>
       </View>
 
-      <Pressable
-        testID={`${testID}-plus`}
-        accessibilityRole="button"
+      <StepButton
+        symbol="+"
         accessibilityLabel="Augmenter"
-        disabled={!canIncrement}
+        testID={`${testID}-plus`}
+        enabled={canIncrement}
+        tone={tone}
         onPress={handlePlus}
-        className={`rounded-lg border px-3 py-1.5 ${
-          canIncrement
-            ? 'border-hairline bg-panel-raised active:bg-star/20 active:border-star/50'
-            : 'border-hairline/30 bg-panel-inset'
-        }`}
-      >
-        <Text
-          className={`text-2xl font-bold leading-tight ${
-            canIncrement ? 'text-cosmic-100' : 'text-cosmic-600'
-          }`}
-        >
-          +
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 }

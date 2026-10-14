@@ -250,8 +250,20 @@ export type Database = {
     Views: {
       [_ in never]: never;
     };
+    /** RPC définies dans `supabase/migrations/20261014120000_atomic_write_rpcs.sql`. */
     Functions: {
-      [_ in never]: never;
+      start_game: {
+        Args: { p_seats: Json };
+        Returns: Json;
+      };
+      save_round: {
+        Args: { p_game_id: string; p_round_number: number; p_results: Json };
+        Returns: string;
+      };
+      save_last_game_config: {
+        Args: { p_name: string | null; p_player_count: number; p_seats: Json };
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;

@@ -104,6 +104,7 @@ export function isBetweenRounds(state: GamePlayState): boolean {
 
 export type PlayAction =
   | { type: 'INIT'; playerCount: number }
+  | { type: 'RESTORE'; state: GamePlayState }
   | { type: 'CLEAR' }
   | { type: 'START_DESCENT' }
   | { type: 'SET_ANNOUNCEMENT'; index: number; value: number }
@@ -122,6 +123,8 @@ export function gamePlayReducer(
       return null;
     case 'INIT':
       return createInitialPlayState(action.playerCount);
+    case 'RESTORE':
+      return action.state;
     case 'START_DESCENT': {
       if (!state) return state;
       if (state.descentStartRound !== null) return state;

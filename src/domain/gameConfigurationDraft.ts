@@ -45,7 +45,11 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-export function ensureSlotsLength(slots: PlayerSlotDraft[], count: number): PlayerSlotDraft[] {
+/** Complète ou tronque les sièges ; attribue un `slotKey` aux sièges qui n’en ont pas. */
+export function ensureSlotsLength(
+  slots: (Omit<PlayerSlotDraft, 'slotKey'> & { slotKey?: string })[],
+  count: number,
+): PlayerSlotDraft[] {
   const next = slots.slice(0, count).map((s) => ({
     ...s,
     slotKey: s.slotKey ?? createSlotKey(),

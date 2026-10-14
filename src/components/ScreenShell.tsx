@@ -51,7 +51,7 @@ function BackgroundOverlays() {
     <Svg
       width={width}
       height={height}
-      style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
+      style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
       pointerEvents="none"
     >
       <Defs>
@@ -195,7 +195,7 @@ export function ScreenShell({ children, testID, edges = ['top', 'left', 'right']
         colors={[...gradientColors]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
       <SafeAreaView testID={testID} className="flex-1 bg-transparent" edges={edges} style={{ zIndex: 1 }}>
         {children}

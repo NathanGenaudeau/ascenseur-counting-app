@@ -1,43 +1,36 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
 import type { ScoreThresholdSoundKind } from '../domain/scoreThresholdEvents';
 
-let audioModeReady = false;
-let soundAbove: Audio.Sound | null = null;
-let soundBelow: Audio.Sound | null = null;
+let loading: Promise<Record<ScoreThresholdSoundKind, AudioPlayer>> | null = null;
 
-async function ensureAudioMode(): Promise<void> {
-  if (audioModeReady) return;
-  await Audio.setAudioModeAsync({
-    playsInSilentModeIOS: true,
-    allowsRecordingIOS: false,
-    staysActiveInBackground: false,
-    shouldDuckAndroid: true,
-    playThroughEarpieceAndroid: false,
-  });
-  audioModeReady = true;
-}
-
-async function ensureSoundsLoaded(): Promise<void> {
-  if (soundAbove && soundBelow) return;
-  await ensureAudioMode();
-  const [a, b] = await Promise.all([
-    Audio.Sound.createAsync(require('../../assets/sounds/score_above_10.wav')),
-    Audio.Sound.createAsync(require('../../assets/sounds/score_below_minus_10.wav')),
-  ]);
-  soundAbove = a.sound;
-  soundBelow = b.sound;
-}
-
-async function playKind(kind: ScoreThresholdSoundKind): Promise<void> {
-  try {
-    await ensureSoundsLoaded();
-    const s = kind === 'above10' ? soundAbove : soundBelow;
-    if (!s) return;
-    await s.replayAsync();
-  } catch {
-    /* pas bloquant si audio indisponible */
+function loadPlayers(): Promise<Record<ScoreThresholdSoundKind, AudioPlayer>> {
+  if (!loading) {
+    loading = (async () => {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: false,
+        shouldPlayInBackground: false,
+        interruptionMode: 'duckOthers',
+        shouldRouteThroughEarpiece: false,
+      });
+      return {
+        above10: createAudioPlayer(require('../../assets/sounds/score_above_10.wav')),
+        belowMinus10: createAudioPlayer(require('../../assets/sounds/score_below_minus_10.wav')),
+      };
+    })().catch((e: unknown) => {
+      loading = null;
+      throw e;
+    });
   }
+  return loading;
+}
+
+/** Charge les sons à l’avance (début de partie) pour éviter la latence du premier franchissement. */
+export function preloadScoreThresholdSounds(): void {
+  loadPlayers().catch(() => {
+    /* pas bloquant si audio indisponible */
+  });
 }
 
 const STAGGER_MS = 160;
@@ -47,15 +40,17 @@ export function playScoreThresholdSounds(kinds: ScoreThresholdSoundKind[]): void
   if (kinds.length === 0) return;
   void (async () => {
     try {
-      await ensureSoundsLoaded();
+      const players = await loadPlayers();
       for (let i = 0; i < kinds.length; i++) {
         if (i > 0) {
           await new Promise((r) => setTimeout(r, STAGGER_MS));
         }
-        await playKind(kinds[i]);
+        const player = players[kinds[i]];
+        await player.seekTo(0);
+        player.play();
       }
     } catch {
-      /* noop */
+      /* pas bloquant si audio indisponible */
     }
   })();
 }

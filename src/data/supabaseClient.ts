@@ -25,11 +25,6 @@ export function getTypedSupabaseClient(): SupabaseClient<Database> | null {
   return singleton;
 }
 
-/** Alias historique — préférer `getTypedSupabaseClient` pour la clarté ASC-47. */
-export function getSupabaseClient(): SupabaseClient<Database> | null {
-  return getTypedSupabaseClient();
-}
-
 /** Tests uniquement : réinitialise le singleton. */
 export function resetSupabaseClientForTests(): void {
   singleton = undefined;

@@ -25,9 +25,9 @@ import type { PlayerDocument } from '../domain/player';
 import { fetchPlayersList } from '../data/repositories/playersRepository';
 import { getTypedSupabaseClient } from '../data/supabaseClient';
 import {
-  loadLastGameConfiguration,
-  persistLastGameConfiguration,
-} from '../services/lastGameConfigurationStorage';
+  loadLastGameDraftFromSupabase,
+  persistLastGameDraftSupabase,
+} from '../services/lastGameConfigurationSupabase';
 import { startRemoteGameSession } from '../services/gameSessionSupabase';
 import { useGameSession } from './GameSessionContext';
 
@@ -133,7 +133,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const loaded = await loadLastGameConfiguration();
+      const loaded = await loadLastGameDraftFromSupabase();
       if (!cancelled && loaded && !skipInitialRemoteHydrationRef.current) {
         dispatch({ type: 'SET_DRAFT', draft: loaded });
       }
@@ -171,7 +171,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
   }, []);
 
   const loadLastSavedConfiguration = useCallback(async () => {
-    const loaded = await loadLastGameConfiguration();
+    const loaded = await loadLastGameDraftFromSupabase();
     if (loaded) {
       dispatch({ type: 'SET_DRAFT', draft: loaded });
     }
@@ -204,7 +204,7 @@ export function GameConfigurationProvider({ children }: { children: React.ReactN
         })),
       };
 
-      const okConfig = await persistLastGameConfiguration(draftWithResolvedPlayers);
+      const okConfig = await persistLastGameDraftSupabase(draftWithResolvedPlayers);
       if (!okConfig && __DEV__) {
         console.warn(
           '[startGame] Modèle de configuration non sauvegardé (tables game_config_* ou droits). La partie a tout de même été créée.',

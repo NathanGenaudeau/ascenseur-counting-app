@@ -13,6 +13,7 @@ jest.mock('./src/services/gameSessionSupabase', () => ({
     players: draft.slots.map((s, i) => ({
       displayName: s.displayName.trim(),
       playerId: s.playerId ?? `00000000-0000-0000-0000-0000000000${10 + i}`,
+      gamePlayerId: `00000000-0000-0000-0000-0000000000${30 + i}`,
     })),
   })),
   persistRemoteRound: jest.fn().mockResolvedValue(true),
@@ -26,20 +27,16 @@ jest.mock('./src/services/lastGameConfigurationSupabase', () => ({
 
 jest.mock('./src/services/scoreThresholdSoundPlayer', () => ({
   playScoreThresholdSounds: jest.fn(),
+  preloadScoreThresholdSounds: jest.fn(),
 }));
 
-jest.mock('expo-av', () => ({
-  Audio: {
-    setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
-    Sound: {
-      createAsync: jest.fn().mockResolvedValue({
-        sound: {
-          replayAsync: jest.fn().mockResolvedValue(undefined),
-          unloadAsync: jest.fn().mockResolvedValue(undefined),
-        },
-      }),
-    },
-  },
+jest.mock('expo-audio', () => ({
+  setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+  createAudioPlayer: jest.fn(() => ({
+    seekTo: jest.fn().mockResolvedValue(undefined),
+    play: jest.fn(),
+    remove: jest.fn(),
+  })),
 }));
 
 jest.mock('expo-font', () => ({

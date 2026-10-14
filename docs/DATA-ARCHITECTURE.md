@@ -8,20 +8,18 @@ L’application **ne contient pas** de clé secrète serveur (service role) ni d
 
 | Élément | Rôle |
 |--------|------|
-| **`src/config/env.ts`** | Lecture **uniquement** des variables `EXPO_PUBLIC_*` (URL projet, clé anon, API optionnelle). Aucun secret serveur. |
+| **`src/config/env.ts`** | Lecture **uniquement** des variables `EXPO_PUBLIC_*` (URL projet, clé anon). Aucun secret serveur. |
 | **`src/data/supabaseClient.ts`** | **Client Supabase unique** : `getTypedSupabaseClient()` retourne `SupabaseClient<Database> \| null` (singleton, compatible Expo). `null` si URL ou clé anon absents. |
 | **`src/data/database.types.ts`** | Contrat TypeScript **Row / Insert / Update** aligné sur le schéma Postgres (référence de vérité avec le script SQL). |
-| **`src/data/repositories/*.ts`** | **Seule couche applicative** qui enchaîne les appels `.from(...).select/insert/update` vers les tables. Pas de logique métier de score dupliquée hors du domaine. |
-| **`src/data/persistence/`** (optionnel) | `PersistenceGateway` + préfixes `/v1/...` si un backend HTTP proxy ou des Edge Functions exposent la même donnée en REST. |
+| **`src/data/repositories/*.ts`** | **Seule couche applicative** qui appelle Supabase : lectures via `.from(...)`, écritures multi-tables via les RPC transactionnelles (`start_game`, `save_round`, `save_last_game_config`). Pas de logique métier de score dupliquée hors du domaine. |
 
 Le flux principal pour la persistance serverless est donc : **écran / service → repository → client Supabase typé → Postgres (RLS)**.
 
-## Deux modes complémentaires
+## Écritures atomiques et mode hors ligne
 
-| Mode | Usage |
-|------|--------|
-| **Client Supabase** (`@supabase/supabase-js`) | `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` — accès direct aux tables **sous contrôle des politiques RLS**. |
-| **API HTTP** (`EXPO_PUBLIC_API_URL`) | Routes REST (`/v1/...`) pour logique métier, agrégations ou proxy si le backend reste la couche unique d’écriture. |
+Les opérations qui touchent plusieurs tables passent par des fonctions Postgres (`supabase/migrations/20261014120000_atomic_write_rpcs.sql`) : une transaction et un aller-retour chacune, donc pas de partie orpheline ni de modèle sans sièges en cas d’échec.
+
+La partie en cours est sauvegardée sur l’appareil (`src/services/activeGameStorage.ts`, AsyncStorage) et reprise au redémarrage. Les manches sont envoyées dans l’ordre par `GameSessionContext` ; `save_round` étant idempotente, un échec laisse la manche en attente et un nouvel essai (manche suivante, retour au premier plan, bouton « Réessayer ») reprend là où l’envoi s’était arrêté. La clôture de partie n’est envoyée qu’après la dernière manche.
 
 ## Rôles
 
@@ -33,6 +31,6 @@ Le flux principal pour la persistance serverless est donc : **écran / service �
 ## Stratégie secrets
 
 - **Interdit** dans le dépôt mobile : clé **service role** Supabase, mots de passe Postgres, secrets Edge non prévus pour le client.
-- **Autorisé** : URL projet Supabase, clé **anon**, URL publique d’API custom.
+- **Autorisé** : URL projet Supabase, clé **anon**.
 
-Le mapping tables Postgres ↔ routes REST (optionnel) est décrit dans [SUPABASE.md](./SUPABASE.md). Les types générés / maintenus pour Supabase sont dans `src/data/database.types.ts` ; les documents métier camelCase restent dans `src/domain/` et sont mappés dans les repositories.
+Les tables sont décrites dans [SUPABASE.md](./SUPABASE.md). Les types générés / maintenus pour Supabase sont dans `src/data/database.types.ts` ; les documents métier camelCase restent dans `src/domain/` et sont mappés dans les repositories.

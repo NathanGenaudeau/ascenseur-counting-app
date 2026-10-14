@@ -17,20 +17,3 @@ export function gameStatusForDb(domain: GameStatus): string {
   return GAME_STATUS_DB[domain];
 }
 
-/** Lit une valeur renvoyée par Postgres et la ramène au domaine. */
-export function gameStatusFromDb(db: string): GameStatus {
-  const map: Record<string, GameStatus> = {
-    draft: 'draft',
-    in_progress: 'running',
-    finished: 'finished',
-    // Compat : anciennes bases / tests
-    running: 'running',
-    DRAFT: 'draft',
-    RUNNING: 'running',
-    FINISHED: 'finished',
-    ABORTED: 'aborted',
-    aborted: 'aborted',
-    CANCELLED: 'aborted',
-  };
-  return map[db] ?? 'draft';
-}

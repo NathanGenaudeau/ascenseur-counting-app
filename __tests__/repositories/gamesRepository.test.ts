@@ -2,10 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '../../src/data/database.types';
 import {
-  addPlayersToGame,
-  createGame,
   deleteGameById,
-  getGameById,
+  startGameWithSeats,
   getGameParticipants,
 } from '../../src/data/repositories/gamesRepository';
 import { getTypedSupabaseClient, resetSupabaseClientForTests } from '../../src/data/supabaseClient';
@@ -19,58 +17,6 @@ describe('gamesRepository (ASC-49)', () => {
   afterEach(() => {
     resetSupabaseClientForTests();
     jest.mocked(getTypedSupabaseClient).mockReset();
-  });
-
-  it('createGame retourne null sans client', async () => {
-    jest.mocked(getTypedSupabaseClient).mockReturnValue(null);
-    await expect(createGame('draft', 4)).resolves.toBeNull();
-  });
-
-  it('createGame mappe une ligne games (player_count obligatoire)', async () => {
-    const row = {
-      id: 'g1',
-      status: 'in_progress',
-      player_count: 4,
-      started_at: '2026-01-01T00:00:00.000Z',
-      finished_at: null,
-      created_at: '2026-01-01T00:00:00.000Z',
-      updated_at: '2026-01-01T00:00:00.000Z',
-    };
-    const single = jest.fn(() => Promise.resolve({ data: row, error: null }));
-    const select = jest.fn(() => ({ single }));
-    const insert = jest.fn(() => ({ select }));
-    const from = jest.fn(() => ({ insert }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
-
-    const game = await createGame('running', 4);
-
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'in_progress',
-        player_count: 4,
-        started_at: expect.any(String),
-      }),
-    );
-    expect(game?._id).toBe('g1');
-    expect(game?.status).toBe('running');
-    expect(game?.settings).toBeUndefined();
-  });
-
-  it('addPlayersToGame insère une ligne par joueur avec snapshot', async () => {
-    const insert = jest.fn(() => Promise.resolve({ error: null }));
-    const from = jest.fn(() => ({ insert }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
-
-    const ok = await addPlayersToGame('g1', [
-      { playerId: 'a', displayNameSnapshot: 'A' },
-      { playerId: 'b', displayNameSnapshot: 'B' },
-    ]);
-
-    expect(ok).toBe(true);
-    expect(insert).toHaveBeenCalledWith([
-      { game_id: 'g1', player_id: 'a', seat_order: 1, display_name_snapshot: 'A' },
-      { game_id: 'g1', player_id: 'b', seat_order: 2, display_name_snapshot: 'B' },
-    ]);
   });
 
   it('getGameParticipants trie par siège', async () => {
@@ -107,26 +53,6 @@ describe('gamesRepository (ASC-49)', () => {
     expect(parts.map((p) => p.playerId)).toEqual(['p1', 'p2']);
   });
 
-  it('getGameById retourne le document', async () => {
-    const row = {
-      id: 'g1',
-      status: 'finished',
-      player_count: 4,
-      started_at: null,
-      finished_at: null,
-      created_at: '2026-01-01T00:00:00.000Z',
-      updated_at: '2026-01-01T00:00:00.000Z',
-    };
-    const maybeSingle = jest.fn(() => Promise.resolve({ data: row, error: null }));
-    const eq = jest.fn(() => ({ maybeSingle }));
-    const select = jest.fn(() => ({ eq }));
-    const from = jest.fn(() => ({ select }));
-    jest.mocked(getTypedSupabaseClient).mockReturnValue({ from } as unknown as SupabaseClient<Database>);
-
-    const g = await getGameById('g1');
-    expect(g?.status).toBe('finished');
-  });
-
   it('deleteGameById retourne false sans client', async () => {
     jest.mocked(getTypedSupabaseClient).mockReturnValue(null);
     await expect(deleteGameById('g1')).resolves.toBe(false);
@@ -143,5 +69,61 @@ describe('gamesRepository (ASC-49)', () => {
     expect(ok).toBe(true);
     expect(from).toHaveBeenCalledWith('games');
     expect(eq).toHaveBeenCalledWith('id', 'g1');
+  });
+
+  it('startGameWithSeats appelle la RPC start_game et mappe les sièges', async () => {
+    const rpc = jest.fn(() =>
+      Promise.resolve({
+        data: {
+          game_id: 'g1',
+          players: [
+            { player_id: 'p1', game_player_id: 'gp1', display_name: 'Ann' },
+            { player_id: 'p2', game_player_id: 'gp2', display_name: 'Bob' },
+          ],
+        },
+        error: null,
+      }),
+    );
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ rpc } as unknown as SupabaseClient<Database>);
+
+    const started = await startGameWithSeats([
+      { playerId: 'p1', displayName: 'Ann' },
+      { displayName: '  Bob ' },
+    ]);
+
+    expect(rpc).toHaveBeenCalledWith('start_game', {
+      p_seats: [
+        { player_id: 'p1', display_name: 'Ann' },
+        { player_id: null, display_name: 'Bob' },
+      ],
+    });
+    expect(started).toEqual({
+      gameId: 'g1',
+      players: [
+        { playerId: 'p1', gamePlayerId: 'gp1', displayName: 'Ann' },
+        { playerId: 'p2', gamePlayerId: 'gp2', displayName: 'Bob' },
+      ],
+    });
+  });
+
+  it('startGameWithSeats retourne null si la réponse ne couvre pas tous les sièges', async () => {
+    const rpc = jest.fn(() =>
+      Promise.resolve({
+        data: { game_id: 'g1', players: [{ player_id: 'p1', game_player_id: 'gp1', display_name: 'Ann' }] },
+        error: null,
+      }),
+    );
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ rpc } as unknown as SupabaseClient<Database>);
+
+    await expect(
+      startGameWithSeats([{ displayName: 'Ann' }, { displayName: 'Bob' }]),
+    ).resolves.toBeNull();
+  });
+
+  it('startGameWithSeats retourne null si la RPC échoue', async () => {
+    const rpc = jest.fn(() => Promise.resolve({ data: null, error: { message: 'boom' } }));
+    jest.mocked(getTypedSupabaseClient).mockReturnValue({ rpc } as unknown as SupabaseClient<Database>);
+
+    await expect(startGameWithSeats([{ displayName: 'Ann' }])).resolves.toBeNull();
   });
 });

@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { SUPABASE_TABLE } from '../src/data/persistence/supabaseResources';
 
 /**
  * ASC-44 / ASC-45 — cohérence noms de tables avec le script SQL de migration.
@@ -23,17 +22,15 @@ describe('Schéma SQL de référence', () => {
     expect(sql).toContain('round_results_score_rule');
   });
 
-  it('SUPABASE_TABLE aligné sur Postgres', () => {
-    expect(Object.values(SUPABASE_TABLE)).toEqual(
-      expect.arrayContaining([
-        'players',
-        'games',
-        'game_players',
-        'rounds',
-        'round_results',
-        'game_config_templates',
-        'game_config_template_players',
-      ]),
+  it('déclare les RPC d’écriture atomiques utilisées par le client', () => {
+    const sqlPath = path.join(__dirname, '../supabase/migrations/20261014120000_atomic_write_rpcs.sql');
+    const sql = fs.readFileSync(sqlPath, 'utf8');
+    expect(sql).toContain('create or replace function public.start_game(p_seats jsonb)');
+    expect(sql).toContain(
+      'create or replace function public.save_round(p_game_id uuid, p_round_number integer, p_results jsonb)',
+    );
+    expect(sql).toContain(
+      'create or replace function public.save_last_game_config(p_name text, p_player_count integer, p_seats jsonb)',
     );
   });
 });

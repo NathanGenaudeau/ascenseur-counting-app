@@ -1,7 +1,6 @@
 import {
   computeCumulativeScores,
   computeRoundScore,
-  computeRoundScoreFromBid,
   computeRoundScoresForPlayers,
 } from '../src/domain/scoring';
 
@@ -16,13 +15,6 @@ describe('computeRoundScore (ASC-11)', () => {
 
   it('retourne -2 pour annonce 4 et réalisé 6', () => {
     expect(computeRoundScore(4, 6)).toBe(-2);
-  });
-});
-
-describe('computeRoundScoreFromBid (ASC-51)', () => {
-  it('est équivalent à computeRoundScore pour bid / tricks_won', () => {
-    expect(computeRoundScoreFromBid(3, 3)).toBe(computeRoundScore(3, 3));
-    expect(computeRoundScoreFromBid(3, 2)).toBe(computeRoundScore(3, 2));
   });
 });
 

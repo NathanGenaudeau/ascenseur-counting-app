@@ -2,6 +2,7 @@ import {
   buildBettingHighlights,
   buildFinalRanking,
   buildFunStats,
+  currentBetFailureStreak,
   currentBetSuccessStreak,
 } from '../src/domain/gameOutcome';
 
@@ -123,6 +124,32 @@ describe('buildBettingHighlights', () => {
     ];
     expect(currentBetSuccessStreak(rounds, 0)).toBe(3);
     expect(currentBetSuccessStreak(rounds, 1)).toBe(2);
+  });
+
+  it('currentBetFailureStreak : série de paris ratés en partant de la dernière manche', () => {
+    const rounds = [
+      {
+        roundIndex: 1,
+        announcements: [1, 0],
+        tricks: [1, 2],
+        scores: [1, -2],
+      },
+      {
+        roundIndex: 2,
+        announcements: [1, 1],
+        tricks: [0, 0],
+        scores: [-1, -1],
+      },
+      {
+        roundIndex: 3,
+        announcements: [1, 1],
+        tricks: [2, 1],
+        scores: [-1, 1],
+      },
+    ];
+    expect(currentBetFailureStreak(rounds, 0)).toBe(2);
+    expect(currentBetFailureStreak(rounds, 1)).toBe(0);
+    expect(currentBetFailureStreak([], 0)).toBe(0);
   });
 
   it('plus grosse chute de points sur manches consécutives', () => {

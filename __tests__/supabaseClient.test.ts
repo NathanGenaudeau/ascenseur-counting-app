@@ -1,5 +1,5 @@
 import { getSupabaseAnonKey, getSupabaseUrl } from '../src/config/env';
-import { getSupabaseClient, getTypedSupabaseClient, resetSupabaseClientForTests } from '../src/data/supabaseClient';
+import { getTypedSupabaseClient, resetSupabaseClientForTests } from '../src/data/supabaseClient';
 
 describe('Client Supabase typé (ASC-47)', () => {
   const prevUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -18,7 +18,6 @@ describe('Client Supabase typé (ASC-47)', () => {
     delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     expect(getSupabaseUrl()).toBe('');
     expect(getSupabaseAnonKey()).toBe('');
-    expect(getSupabaseClient()).toBeNull();
     expect(getTypedSupabaseClient()).toBeNull();
   });
 });

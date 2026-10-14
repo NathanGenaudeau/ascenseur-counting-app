@@ -1,5 +1,5 @@
 import { getSupabaseAnonKey, getSupabaseUrl } from '../src/config/env';
-import { getSupabaseClient, resetSupabaseClientForTests } from '../src/data/supabaseClient';
+import { getTypedSupabaseClient, resetSupabaseClientForTests } from '../src/data/supabaseClient';
 
 /**
  * ASC-42 — point d’accès données : env publics + client Supabase singleton.
@@ -26,6 +26,6 @@ describe('Architecture accès données (ASC-42)', () => {
   it('retourne null pour le client si URL ou clé absents (pas de crash)', () => {
     delete process.env.EXPO_PUBLIC_SUPABASE_URL;
     delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-    expect(getSupabaseClient()).toBeNull();
+    expect(getTypedSupabaseClient()).toBeNull();
   });
 });

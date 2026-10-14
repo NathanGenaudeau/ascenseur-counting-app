@@ -77,7 +77,7 @@ export function buildFunStats(roundsCompleted: CompletedRound[], playerCount: nu
 }
 
 /** Pari réussi : annonce identique au nombre de plis remportés (même règle que le score de manche). */
-function betSucceeded(r: CompletedRound, playerIndex: number): boolean {
+export function betSucceeded(r: CompletedRound, playerIndex: number): boolean {
   const a = r.announcements[playerIndex];
   const t = r.tricks[playerIndex];
   return (
@@ -108,7 +108,27 @@ export function currentBetSuccessStreak(
   return streak;
 }
 
-function longestBetSuccessStreak(roundsCompleted: CompletedRound[], playerIndex: number): number {
+/**
+ * Série actuelle de paris ratés : compte depuis la dernière manche terminée à rebours
+ * jusqu’au premier pari réussi.
+ */
+export function currentBetFailureStreak(
+  roundsCompleted: CompletedRound[],
+  playerIndex: number,
+): number {
+  let streak = 0;
+  for (let r = roundsCompleted.length - 1; r >= 0; r--) {
+    if (!betSucceeded(roundsCompleted[r], playerIndex)) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+/** Plus longue suite de paris réussis consécutifs dans une partie. */
+export function longestBetSuccessStreak(roundsCompleted: CompletedRound[], playerIndex: number): number {
   let best = 0;
   let cur = 0;
   for (const r of roundsCompleted) {

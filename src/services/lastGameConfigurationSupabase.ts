@@ -1,6 +1,6 @@
 import {
   getLastUsedTemplateWithPlayers,
-  upsertLastUsedGameConfigTemplate,
+  saveLastUsedGameConfigTemplate,
 } from '../data/repositories/gameConfigTemplatesRepository';
 import { getTypedSupabaseClient } from '../data/supabaseClient';
 import {
@@ -12,15 +12,14 @@ import {
 export async function persistLastGameDraftSupabase(draft: GameConfigurationDraft): Promise<boolean> {
   if (!getTypedSupabaseClient()) return false;
 
-  const seats = draft.slots.map((s, i) => ({
-    seatOrder: i,
+  const seats = draft.slots.map((s) => ({
     playerId: s.playerId ?? null,
     displayNameSnapshot: s.displayName.trim() ? s.displayName.trim() : null,
   }));
 
   const nameFromNotes = draft.settings.notes ? draft.settings.notes.slice(0, 120) : null;
 
-  return upsertLastUsedGameConfigTemplate({
+  return saveLastUsedGameConfigTemplate({
     name: nameFromNotes,
     playerCount: draft.playerCount,
     seats,
