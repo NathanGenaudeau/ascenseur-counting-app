@@ -45,6 +45,14 @@
       ],
       "expo-status-bar",
       "expo-asset"
-    ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/c8c52824-e276-4848-aa7a-d9ca77b71bbf",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    }
   }
 }

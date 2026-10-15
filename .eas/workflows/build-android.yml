@@ -1,16 +1,44 @@
-# Builds an installable Android APK (EAS profile "preview") on every push to main.
+# On every push to main:
+# - if the native code changed (new fingerprint), build a new Android APK (EAS profile "preview");
+# - otherwise, publish an over-the-air update to the "preview" channel (no rebuild, ~1 min).
 # Supabase variables come from the EAS "preview" environment, not from the local .env.
 # Requires the GitHub repository to be linked in the expo.dev project settings.
-name: Build Android APK
+name: Build or update Android
 
 on:
   push:
     branches: ['main']
 
 jobs:
+  fingerprint:
+    name: Compute native fingerprint
+    type: fingerprint
+    environment: preview
+
+  get_android_build:
+    name: Find a compatible APK
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      profile: preview
+      platform: android
+
   build_android:
     name: Build Android APK
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
     type: build
     params:
       platform: android
       profile: preview
+
+  update_android:
+    name: Publish OTA update
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id }}
+    type: update
+    environment: preview
+    params:
+      channel: preview
+      platform: android
