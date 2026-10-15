@@ -1,0 +1,16 @@
+# Builds an installable Android APK (EAS profile "preview") on every push to main.
+# Supabase variables come from the EAS "preview" environment, not from the local .env.
+# Requires the GitHub repository to be linked in the expo.dev project settings.
+name: Build Android APK
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build_android:
+    name: Build Android APK
+    type: build
+    params:
+      platform: android
+      profile: preview
